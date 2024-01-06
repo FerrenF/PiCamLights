@@ -1,0 +1,5 @@
+python3-pigpio
+python3-picamera
+python3-numpy
+python3-opencv2
+python3-flask

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <title>FlaskApp</title>
+</head>
+<body>
+    <h1>Extruder Cam Directory</h1>
+    <nav>
+        <ul>
+            <li><a href="#">Home</a></li>
+            <li><a href="/camera">Camera</a></li>
+            <script type="text/javascript">
+                function lightsOn(){
+                    const xhttp = new XMLHttpRequest();
+                    xhttp.open("GET","/lights/on", true);
+                    xhttp.send();
+                }
+
+                function lightsOff(){
+                    const xhttp = new XMLHttpRequest();
+                    xhttp.open("GET","/lights/off", true);
+                    xhttp.send();
+                }
+            </script>
+            <li>Lights: <a href="#" onclick="lightsOn()">On</a> / <a href="#" onclick="lightsOff()">Off</a></li>
+        </ul>
+    </nav>
+    <div class="content">
+        {% block content %} {% endblock %}
+    </div>
+</body>
+</html>
