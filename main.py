@@ -5,6 +5,7 @@ import cv2
 import base64
 import threading
 import time
+import picamera
 
 from flask import Flask, request, jsonify, render_template, make_response, Response, url_for
 
