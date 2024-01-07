@@ -177,18 +177,13 @@ class PyCamLightControls:
 
 
     @staticmethod
-    def access_camera_sensor_mode(mode=0, preview=False):
+    def access_camera_sensor_mode(mode=0):
 
         PyCamLightControls.dbg_msg("Attempting capture image from camera using sensor mode "+str(mode))
 
         sc = PyCamLightControls.camera_interface
         mode = PCL_CONFIG_SENSOR_MODES[mode]
-        
-        if not preview:
-            capture_config = sc.create_still_configuration(sensor={'output_size': mode['size'], 'bit_depth': mode['bit_depth']})
-        else:        
-            capture_config = sc.create_preview_configuration(sensor={'output_size': mode['size'], 'bit_depth': mode['bit_depth']})
-
+        capture_config = sc.create_preview_configuration(sensor={'output_size': mode['size'], 'bit_depth': mode['bit_depth']})
         time.sleep(1)
         data = io.BytesIO()
         sc.switch_mode_and_capture_file(capture_config, data, format='jpeg')
@@ -202,14 +197,13 @@ class PyCamLightControls:
     @staticmethod
     def access_camera_still_image():
 
-        #sc = PyCamLightControls.camera_interface
-        #PyCamLightControls.dbg_msg("Attempting to capture still image from camera.")
-        #capture_config = sc.create_still_configuration()
-        #time.sleep(1)
-        #data = io.BytesIO()
-        #sc.switch_mode_and_capture_file(capture_config, data, format='jpeg')
-        #return data.getvalue()
-        return PyCamLightControls.access_camera_sensor_mode(2, False)
+        sc = PyCamLightControls.camera_interface
+        PyCamLightControls.dbg_msg("Attempting to capture still image from camera.")
+        capture_config = sc.create_still_configuration()
+        time.sleep(1)
+        data = io.BytesIO()
+        sc.switch_mode_and_capture_file(capture_config, data, format='jpeg')
+        return data.getvalue()
 
     @staticmethod
     def initialize_pycamlights():
@@ -269,12 +263,15 @@ def access_camera_stream():
 def access_still_image():
     try:
         
-        res = request.args.get('lores', 'false')        
-        if res == True:        
+        res = request.args.get('res', 'low')
+
+
+        if res == 'low':
             image_bytes = PyCamLightControls.access_camera_lores_image()
-        else:
+        elif res == "high":
             image_bytes = PyCamLightControls.access_camera_still_image()
-        
+        else
+            image_bites=None
         
         if not image_bytes:
             return "Failed to capture image", 500
