@@ -5,12 +5,13 @@ import cv2
 import base64
 import threading
 import time
-import picamera
+from picamera2 import Picamera2
 
 from flask import Flask, request, jsonify, render_template, make_response, Response, url_for
 
 # Initialize pigpio
-MODE_NO_PI = True
+MODE_NO_PI = False
+MODE_NO_CAM = True
 MODE_DEBUG = True
 
 PCL_CONFIG_RESOLUTION_X = 320
@@ -35,8 +36,9 @@ class PyCamLightControls:
     GPIO_BLUE = 17
     camera_thread = None
     camera_interface = None
-    pig_interface = pigpio.pi()
+    pig_interface = None
     lights = light(0,0,0)
+
 
     @staticmethod
     def dbg_msg(str):
@@ -80,28 +82,14 @@ class PyCamLightControls:
     @staticmethod
     def access_camera_stream():
 
-        if MODE_NO_PI:
-            PyCamLightControls.dbg_msg("NO_PI activated, no camera present. Generating camera stream. ")
+
+        if MODE_NO_PI or MODE_NO_CAM:
+            PyCamLightControls.dbg_msg("NO_PI or NO_CAM activated. Generating camera stream. ")
             yield from PyCamLightControls.stream_synthetic_camera()
         else:
+
             PyCamLightControls.dbg_msg("Accessing camera stream...")
-            rawCapture = picamera.array.PiRGBArray(camera)
-            camera = PyCamLightControls.camera_interface
 
-
-            camera.resolution = (PCL_CONFIG_RESOLUTION_X, PCL_CONFIG_RESOLUTION_Y)
-            camera.framerate = PCL_CONFIG_FRAMERATE
-
-            for _ in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-
-                image = rawCapture.array
-                ret, jpeg = cv2.imencode('.jpg', image)
-                # Yield the image in a format suitable for streaming
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
-
-                # Clear the stream for the next frame
-                rawCapture.truncate(0)
 
     @staticmethod
     def stream_synthetic_camera():
@@ -156,31 +144,28 @@ class PyCamLightControls:
         cv2.ellipse(image, (center_x, center_y + radius // 3), (radius // 2, radius // 2), 0, 0, 180, (0, 0, 0), 2)
 
         return image
-    @staticmethod
-    def pull_cv_obj():
-        image = np.empty((PCL_CONFIG_RESOLUTION_Y * PCL_CONFIG_RESOLUTION_X * 3,), dtype=np.uint8)
-        if MODE_NO_PI:
-            PyCamLightControls.dbg_msg("NO_PI mode is on. No camera is present. Returning empty image.")
-            image = PyCamLightControls.generate_smiley_face(PCL_CONFIG_RESOLUTION_X,PCL_CONFIG_RESOLUTION_Y)
-            return image.reshape((PCL_CONFIG_RESOLUTION_Y, PCL_CONFIG_RESOLUTION_X,3))
-
-        PyCamLightControls.dbg_msg("Accessing still image.");
-        PyCamLightControls.camera_interface.capture(image, 'bgr')
-        return image.reshape((PCL_CONFIG_RESOLUTION_Y, PCL_CONFIG_RESOLUTION_X,3))
 
     @staticmethod
-    def access_still_image():
-        img = PyCamLightControls.pull_cv_obj();
+    def access_camera_still_image():
+
+        img = None;
         return img
 
     @staticmethod
     def initialize_pycamlights():
         PyCamLightControls.lights = light(0,0,0)
         PyCamLightControls.dbg_msg("PyCamLights Initializing.")
+
+
         if not MODE_NO_PI:
             PyCamLightControls.dbg_msg("PI modules initializing.")
-            PyCamLightControls.camera_interface = picamera.PiCamera(framerate=PCL_CONFIG_FRAMERATE, resolution=(PCL_CONFIG_RESOLUTION_X, PCL_CONFIG_RESOLUTION_Y))
             PyCamLightControls.pig_interface = pigpio.pi()
+
+            if not MODE_NO_CAM:
+                PyCamLightControls.dbg_msg("Camera initializing.")
+                PyCamLightControls.camera_interface = Picamera2()
+                PyCamLightControls.camera_interface.configure(picam2.create_preview_configuration())
+
 
         camera_thread = threading.Thread(target=access_camera_stream)
         camera_thread.start()
@@ -218,7 +203,7 @@ def access_camera_stream():
 def access_still_image():
     page = request.args.get('page', '0')
 
-    image_obj = PyCamLightControls.access_still_image()
+    image_obj = PyCamLightControls.access_camera_still_image()
     ret, jpeg = cv2.imencode('.jpg', image_obj)
 
     if page is '1':
