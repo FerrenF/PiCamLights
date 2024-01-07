@@ -83,7 +83,7 @@ class PyCamLightControls:
     GPIO_BLUE = 22
     camera_interface = None
     pig_interface = None
-    streaming_output = StreamingOutput()
+    streaming_output = None
     lights = light(0,0,0)
     streaming_started = False
 
@@ -110,15 +110,14 @@ class PyCamLightControls:
     @staticmethod
     def start_camera_stream():
 
+        if PyCamLightControls.streaming_output is None:
+            PyCamLightControls.streaming_output = StreamingOutput()
+
         if PyCamLightControls.streaming_started:
             PyCamLightControls.dbg_msg("Camera stream is already active.")
             return
 
-        if MODE_NO_PI or MODE_NO_CAM:
-            PyCamLightControls.dbg_msg("NO_PI or NO_CAM activated. Generating camera stream. ")
-            yield from PyCamLightControls.stream_synthetic_camera()
-        else:
-
+        if not MODE_NO_PI and not MODE_NO_CAM:
             PyCamLightControls.dbg_msg("Accessing camera stream...")
             sc = PyCamLightControls.camera_interface
 
@@ -130,6 +129,10 @@ class PyCamLightControls:
 
             PyCamLightControls.streaming_started = True  # Update the flag
 
+        else:
+
+            PyCamLightControls.dbg_msg("NO_PI or NO_CAM activated.  ")
+            return
 
     @staticmethod
     def dbg_msg(str):
@@ -276,30 +279,27 @@ def set_lighting_full():
     PyCamLightControls.set_lighting(red=255,green=255,blue=255)
     return jsonify({"message": "Lighting values set to full!"}), 200
 
+
+def frame_generate():
+    while True:
+        with PyCamLightControls.streaming_output.condition:
+            PyCamLightControls.dbg_msg("Awaiting frame...")
+            PyCamLightControls.streaming_output.condition.wait()
+            frame = PyCamLightControls.streaming_output.frame
+
+        fps = PCL_CONFIG_SENSOR_MODES[0].get("fps") or 30
+        if frame is None:
+            continue
+
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+        time.sleep(1.0 / fps)
 @app.route('/stream', methods=['GET'])
 def access_camera_stream():
 
     PyCamLightControls.start_camera_stream()
-    def generate(output):
-        while True:
-            with output.condition:
-                PyCamLightControls.dbg_msg("Awaiting frame...")
-                output.condition.wait()
-                frame = output.frame
-
-            fps = PCL_CONFIG_SENSOR_MODES[0].get("fps") or 30
-            if frame is None:
-                continue
-
-            yield (b'--frame\r\n'
-                   b'Content-Type:image/jpeg\r\n'
-                   b'Content-Length: ' + f"{len(frame)}".encode() + b'\r\n'
-                                                                    b'\r\n' + frame + b'\r\n')
-            time.sleep(1.0 / fps)
-
-
-    response = Response(generate(PyCamLightControls.streaming_output), mimetype='multipart/x-mixed-replace; boundary=frame')
-    return response
+    return Response(frame_generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 @app.route('/camera', methods=['GET'])
