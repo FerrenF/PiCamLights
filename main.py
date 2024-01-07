@@ -19,6 +19,34 @@ PCL_CONFIG_RESOLUTION_X = 320
 PCL_CONFIG_RESOLUTION_Y = 240
 PCL_CONFIG_FRAMERATE = 24
 
+PCL_CONFIG_SENSOR_MODES = {'bit_depth': 10,
+  'crop_limits': (16, 0, 2560, 1920),
+  'exposure_limits': (134, None),
+  'format': SGBRG10_CSI2P,
+  'fps': 58.92,
+  'size': (640, 480),
+  'unpacked': 'SGBRG10'},
+ {'bit_depth': 10,
+  'crop_limits': (0, 0, 2592, 1944),
+  'exposure_limits': (92, 760565, None),
+  'format': SGBRG10_CSI2P,
+  'fps': 43.25,
+  'size': (1296, 972),
+  'unpacked': 'SGBRG10'},
+ {'bit_depth': 10,
+  'crop_limits': (348, 434, 1928, 1080),
+  'exposure_limits': (118, 760636, None),
+  'format': SGBRG10_CSI2P,
+  'fps': 30.62,
+  'size': (1920, 1080),
+  'unpacked': 'SGBRG10'},
+ {'bit_depth': 10,
+  'crop_limits': (0, 0, 2592, 1944),
+  'exposure_limits': (130, 969249, None),
+  'format': SGBRG10_CSI2P,
+  'fps': 15.63,
+  'size': (2592, 1944),
+  'unpacked': 'SGBRG10'}]
 
 app = Flask(__name__)
 
@@ -146,16 +174,43 @@ class PyCamLightControls:
 
         return image
 
-    @staticmethod
-    def access_camera_still_image():
+
+
+     @staticmethod
+    def access_camera_sensor_mode(mode=0, preview=False):
+
+`       PyCamLightControls.dbg_msg("Attempting capture image from camera using sensor mode "+mode)
 
         sc = PyCamLightControls.camera_interface
-        PyCamLightControls.dbg_msg("Attempting to capture still image from camera.")
-        capture_config = sc.create_still_configuration()
+        mode = PCL_CONFIG_SENSOR_MODES[mode]
+        
+        if not preview:
+            capture_config = sc.create_still_configuration(sensor={'output_size': mode['size'], 'bit_depth': mode['bit_depth']})
+        else:        
+            capture_config = sc.create_preview_configuration(sensor={'output_size': mode['size'], 'bit_depth': mode['bit_depth']})
+
         time.sleep(1)
         data = io.BytesIO()
         sc.switch_mode_and_capture_file(capture_config, data, format='jpeg')
         return data.getvalue()
+        
+        
+    @staticmethod
+    def access_camera_lores_image():
+`       
+        return access_camera_sensor_mode(0, True)
+        
+    @staticmethod
+    def access_camera_still_image():
+
+        #sc = PyCamLightControls.camera_interface
+        #PyCamLightControls.dbg_msg("Attempting to capture still image from camera.")
+        #capture_config = sc.create_still_configuration()
+        #time.sleep(1)
+        #data = io.BytesIO()
+        #sc.switch_mode_and_capture_file(capture_config, data, format='jpeg')
+        #return data.getvalue()
+        return access_camera_sensor_mode(2, False)
 
     @staticmethod
     def initialize_pycamlights():
@@ -214,19 +269,25 @@ def access_camera_stream():
 @app.route('/camera', methods=['GET'])
 def access_still_image():
     try:
-    
-        image_bytes = PyCamLightControls.access_camera_still_image()
-        PyCamLightControls.dbg_msg("Returning image as response")
         
+        res = request.args.get('lores', 'false')        
+        if res == True:        
+            image_bytes = PyCamLightControls.access_camera_lores_image()
+        else
+            image_bytes = PyCamLightControls.access_camera_still_image()
+        
+        
+        if not image_bytes:
+            return "Failed to capture image", 500
+            
+            
         page = request.args.get('page', '0')
-        if page == '1':
-            if image_bytes:
-                response = make_response(image_bytes)
-                response.headers['Content-Type'] = 'image/jpeg'
-                return response
-            else:
-                return "Failed to capture image", 500
-
+        if page == '0':           
+            response = make_response(image_bytes)
+            response.headers['Content-Type'] = 'image/jpeg'
+            return response     
+                
+        
         encoded_image = base64.b64encode(image_bytes).decode('utf-8')
         encoded_image_url = f"data:image/jpeg;base64,{encoded_image}"
         return render_template("still.html", imageData=encoded_image_url)
