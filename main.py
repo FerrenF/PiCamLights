@@ -12,7 +12,7 @@ from flask import Flask, request, jsonify, render_template, make_response, Respo
 
 # Initialize pigpio
 MODE_NO_PI = False
-MODE_NO_CAM = True
+MODE_NO_CAM = False
 MODE_DEBUG = True
 
 PCL_CONFIG_RESOLUTION_X = 320
@@ -154,7 +154,7 @@ class PyCamLightControls:
         time.sleep(1)
         data = io.BytesIO()
         PyCamLightControls.camera_interface.switch_mode_and_capture_file(capture_config, data, format='jpeg')
-        return data
+        return data.getvalue()
 
     @staticmethod
     def initialize_pycamlights():
@@ -215,9 +215,9 @@ def access_still_image():
 
     image_obj = PyCamLightControls.access_camera_still_image()
 
-    if page is '1':
+    if page == '1':
         response = make_response(image_obj.tobytes())
-        response.headers['Content-Type'] = 'image/png'
+        response.headers['Content-Type'] = 'image/jpeg'
         return response
 
     encodedImage = base64.b64encode(image_obj).decode('utf-8')
