@@ -149,7 +149,7 @@ class PyCamLightControls:
     @staticmethod
     def access_camera_still_image():
 
-        sc = PyCamLightControls.camera_interface or Picamera2()
+        sc = PyCamLightControls.camera_interface
         PyCamLightControls.dbg_msg("Attempting to capture still image from camera.")
         capture_config = sc.create_still_configuration()
         time.sleep(1)
