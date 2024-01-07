@@ -270,7 +270,7 @@ def access_still_image():
             image_bytes = PyCamLightControls.access_camera_lores_image()
         elif res == "high":
             image_bytes = PyCamLightControls.access_camera_still_image()
-        else
+        else:
             image_bites=None
         
         if not image_bytes:
