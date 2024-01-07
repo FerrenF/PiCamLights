@@ -281,7 +281,7 @@ def access_camera_stream():
     def generate():
         while True:
             with PyCamLightControls.streaming_output.condition:
-                PyCamLightControls.streaming_output.wait()
+                PyCamLightControls.streaming_output.condition.wait()
                 frame = PyCamLightControls.streaming_output.frame
             fps = PCL_CONFIG_SENSOR_MODES[0].get("fps") or 30
             if frame is None:
