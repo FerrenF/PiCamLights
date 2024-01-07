@@ -176,10 +176,10 @@ class PyCamLightControls:
 
 
 
-     @staticmethod
+    @staticmethod
     def access_camera_sensor_mode(mode=0, preview=False):
 
-`       PyCamLightControls.dbg_msg("Attempting capture image from camera using sensor mode "+mode)
+        PyCamLightControls.dbg_msg("Attempting capture image from camera using sensor mode "+mode)
 
         sc = PyCamLightControls.camera_interface
         mode = PCL_CONFIG_SENSOR_MODES[mode]
