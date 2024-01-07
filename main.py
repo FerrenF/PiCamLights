@@ -212,18 +212,27 @@ def access_camera_stream():
 
 @app.route('/camera', methods=['GET'])
 def access_still_image():
-    page = request.args.get('page', '0')
+    try:
+    
+        image_bytes = PyCamLightControls.access_camera_still_image()
+        PyCamLightControls.dbg_msg("Returning image as response")
+        
+        page = request.args.get('page', '0')
+        if page == '1':
+            if image_bytes:
+                response = make_response(image_bytes)
+                response.headers['Content-Type'] = 'image/jpeg'
+                return response
+            else:
+                return "Failed to capture image", 500
 
-    image_obj = PyCamLightControls.access_camera_still_image()
+        encoded_image = base64.b64encode(image_bytes).decode('utf-8')
+        encoded_image_url = f"data:image/jpeg;base64,{encoded_image}"
+        return render_template("still.html", imageData=encoded_image_url)
 
-    if page == '1':
-        response = make_response(image_obj.tobytes())
-        response.headers['Content-Type'] = 'image/jpeg'
-        return response
-
-    encodedImage = base64.b64encode(image_obj).decode('utf-8')
-    encodedImageUrl = f"data:image/jpeg;base64,{encodedImage}"
-    return render_template("still.html", imageData=encodedImageUrl)
+    except Exception as e:
+        PyCamLightControls.dbg_msg(f"Error processing request: {e}")
+        return "Internal Server Error", 500
 
 @app.route('/')
 def index_page():
