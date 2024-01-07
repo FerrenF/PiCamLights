@@ -149,7 +149,7 @@ class PyCamLightControls:
     @staticmethod
     def access_camera_still_image():
 
-        sc = PyCamLightControls.camera_interface
+        sc = PyCamLightControls.camera_interface or Picamera2()
         PyCamLightControls.dbg_msg("Attempting to capture still image from camera.")
         capture_config = sc.create_still_configuration()
         time.sleep(1)
@@ -173,9 +173,10 @@ class PyCamLightControls:
             if not MODE_NO_CAM:
                 PyCamLightControls.dbg_msg("Camera initializing.")
                 PyCamLightControls.camera_interface = Picamera2()
-
+    
                 sc = PyCamLightControls.camera_interface
                 sc.configure(sc.create_preview_configuration())
+                sc.start()
 
 
         camera_thread = threading.Thread(target=access_camera_stream)
