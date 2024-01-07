@@ -1,5 +1,6 @@
 import pigpio
 import os
+import io
 import numpy as np
 import cv2
 import base64
@@ -147,9 +148,11 @@ class PyCamLightControls:
 
     @staticmethod
     def access_camera_still_image():
-
-        img = None;
-        return img
+        capture_config = picam2.create_still_configuration()
+        time.sleep(1)
+        data = io.BytesIO()
+        PyCamLightControls.camera_interface.switch_mode_and_capture_file(capture_config, data, format='jpeg')
+        return data
 
     @staticmethod
     def initialize_pycamlights():
@@ -160,6 +163,9 @@ class PyCamLightControls:
         if not MODE_NO_PI:
             PyCamLightControls.dbg_msg("PI modules initializing.")
             PyCamLightControls.pig_interface = pigpio.pi()
+            PyCamLightControls.pig_interface.set_PWM_range(PyCamLightControls.GPIO_RED, 255)
+            PyCamLightControls.pig_interface.set_PWM_range(PyCamLightControls.GPIO_GREEN, 255)
+            PyCamLightControls.pig_interface.set_PWM_range(PyCamLightControls.GPIO_BLUE, 255)
 
             if not MODE_NO_CAM:
                 PyCamLightControls.dbg_msg("Camera initializing.")
@@ -204,14 +210,13 @@ def access_still_image():
     page = request.args.get('page', '0')
 
     image_obj = PyCamLightControls.access_camera_still_image()
-    ret, jpeg = cv2.imencode('.jpg', image_obj)
 
     if page is '1':
-        response = make_response(jpeg.tobytes())
+        response = make_response(image_obj.tobytes())
         response.headers['Content-Type'] = 'image/png'
         return response
 
-    encodedImage = base64.b64encode(jpeg).decode('utf-8')
+    encodedImage = base64.b64encode(image_obj).decode('utf-8')
     encodedImageUrl = f"data:image/jpeg;base64,{encodedImage}"
     return render_template("still.html", imageData=encodedImageUrl)
 
