@@ -197,7 +197,7 @@ class PyCamLightControls:
         
     @staticmethod
     def access_camera_lores_image():
-        return access_camera_sensor_mode(0, True)
+        return PyCamLightControls.access_camera_sensor_mode(0, True)
         
     @staticmethod
     def access_camera_still_image():
@@ -209,7 +209,7 @@ class PyCamLightControls:
         #data = io.BytesIO()
         #sc.switch_mode_and_capture_file(capture_config, data, format='jpeg')
         #return data.getvalue()
-        return access_camera_sensor_mode(2, False)
+        return PyCamLightControls.access_camera_sensor_mode(2, False)
 
     @staticmethod
     def initialize_pycamlights():
