@@ -19,7 +19,7 @@ PCL_CONFIG_RESOLUTION_X = 320
 PCL_CONFIG_RESOLUTION_Y = 240
 PCL_CONFIG_FRAMERATE = 24
 
-PCL_CONFIG_SENSOR_MODES = {'bit_depth': 10,
+PCL_CONFIG_SENSOR_MODES = [{'bit_depth': 10,
   'crop_limits': (16, 0, 2560, 1920),
   'exposure_limits': (134, None),
   'format': SGBRG10_CSI2P,
