@@ -272,7 +272,7 @@ def access_still_image():
         res = request.args.get('lores', 'false')        
         if res == True:        
             image_bytes = PyCamLightControls.access_camera_lores_image()
-        else
+        else:
             image_bytes = PyCamLightControls.access_camera_still_image()
         
         
