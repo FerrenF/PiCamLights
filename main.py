@@ -5,8 +5,13 @@ import numpy as np
 import cv2
 import base64
 import threading
+from threading import Condition
+
 import time
+
 from picamera2 import Picamera2
+from picamera2.encoders import JpegEncoder
+from picamera2.outputs import FileOutput
 
 from flask import Flask, request, jsonify, render_template, make_response, Response, url_for
 
@@ -51,6 +56,17 @@ PCL_CONFIG_SENSOR_MODES = [{'bit_depth': 10,
 app = Flask(__name__)
 
 
+class StreamingOutput(io.BufferedIOBase):
+    def __init__(self):
+        self.frame = None
+        self.condition = Condition()
+
+    def write(self, buf):
+        with self.condition:
+            self.frame = buf
+            self.condition.notify_all()
+
+
 class light:
     def __init__(self, red, green, blue):
         self.red = red
@@ -60,15 +76,36 @@ class light:
         return "RGB:<"+str(self.red)+", "+str(self.green)+", "+str(self.blue)+">"
 
 class PyCamLightControls:
-    GPIO_RED = 27
-    GPIO_GREEN = 22
-    GPIO_BLUE = 17
+    GPIO_RED = 17
+    GPIO_GREEN = 27
+    GPIO_BLUE = 22
     camera_thread = None
     camera_interface = None
     pig_interface = None
+    streaming_output = None
     lights = light(0,0,0)
+    streaming_started = False
+    @staticmethod
+    def start_camera_stream():
 
+        if PyCamLightControls.streaming_started:
+            PyCamLightControls.dbg_msg("Camera stream is already active.")
+            return
 
+        if MODE_NO_PI or MODE_NO_CAM:
+            PyCamLightControls.dbg_msg("NO_PI or NO_CAM activated. Generating camera stream. ")
+            yield from PyCamLightControls.stream_synthetic_camera()
+        else:
+            PyCamLightControls.dbg_msg("Accessing camera stream...")
+            sc = PyCamLightControls.camera_interface
+
+            (x, y) = PCL_CONFIG_SENSOR_MODES[0].get("size")
+            sc.create_video_configuration(main={"size": (x, y)})
+
+            PyCamLightControls.streaming_output = StreamingOutput()
+            sc.start_recording(JpegEncoder(), FileOutput(PyCamLightControls.streaming_output))
+
+            PyCamLightControls.streaming_started = True  # Update the flag
     @staticmethod
     def dbg_msg(str):
         if MODE_DEBUG:
@@ -84,7 +121,7 @@ class PyCamLightControls:
 
         interface.set_PWM_dutycycle(PyCamLightControls.GPIO_RED, current_lights.red)
         interface.set_PWM_dutycycle(PyCamLightControls.GPIO_GREEN, current_lights.green)
-        interface.set_PWM_dutycycle(PyCamLightControls.GPIO_RED, current_lights.blue)
+        interface.set_PWM_dutycycle(PyCamLightControls.BLUE, current_lights.blue)
 
     @staticmethod
     def set_lighting(**kwargs):
@@ -99,8 +136,7 @@ class PyCamLightControls:
         blue = kwargs.get("blue", -1)
         if blue != -1:
             PyCamLightControls.lights.blue = max(0,min(blue,255))
-            
-        PyCamLightControls.dbg_msg(f"Setting RGB values: Red={red}, Green={green}, Blue={blue}");
+
         PyCamLightControls.write_lights()
 
     @staticmethod
@@ -108,18 +144,12 @@ class PyCamLightControls:
         PyCamLightControls.dbg_msg("Clearing lighting values")
         PyCamLightControls.set_lighting(red=0,green=0,blue=0)
 
+
+
     @staticmethod
-    def access_camera_stream():
-
-
-        if MODE_NO_PI or MODE_NO_CAM:
-            PyCamLightControls.dbg_msg("NO_PI or NO_CAM activated. Generating camera stream. ")
-            yield from PyCamLightControls.stream_synthetic_camera()
-        else:
-
-            PyCamLightControls.dbg_msg("Accessing camera stream...")
-
-
+    def stop_camera_stream():
+        sc = PyCamLightControls.camera_interface
+        sc.stop_recording()
     @staticmethod
     def stream_synthetic_camera():
         # Generate synthetic image parameters
@@ -184,7 +214,6 @@ class PyCamLightControls:
             capture_config = sc.create_preview_configuration()
         else:
             capture_config = sc.create_still_configuration()
-        time.sleep(1)
         data = io.BytesIO()
         sc.switch_mode_and_capture_file(capture_config, data, format='jpeg')
         return data.getvalue()
@@ -247,8 +276,25 @@ def set_lighting_full():
 
 @app.route('/stream', methods=['GET'])
 def access_camera_stream():
+    def generate():
 
-    response = Response(PyCamLightControls.access_camera_stream(), mimetype='multipart/x-mixed-replace; boundary=frame')
+        while True:
+            frame = PyCamLightControls.streaming_output.frame
+            fps = PCL_CONFIG_SENSOR_MODES[0].get("fps") or 30
+            if frame is None:
+                continue
+
+            yield (b'--frame\r\n'
+                   b'Content-Type:image/jpeg\r\n'
+                   b'Content-Length: ' + f"{len(frame)}".encode() + b'\r\n'
+                                                                    b'\r\n' + frame + b'\r\n')
+            time.sleep(1.0 / fps)
+            frame = PyCamLightControls.streaming_output.frame
+
+    PyCamLightControls.start_camera_stream()
+
+    response = Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
     return response
 
 
