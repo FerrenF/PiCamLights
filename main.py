@@ -81,12 +81,32 @@ class PyCamLightControls:
     GPIO_RED = 17
     GPIO_GREEN = 27
     GPIO_BLUE = 22
-    camera_thread = None
     camera_interface = None
     pig_interface = None
     streaming_output = StreamingOutput()
     lights = light(0,0,0)
     streaming_started = False
+
+    @staticmethod
+    def initialize_pycamlights():
+        PyCamLightControls.lights = light(0, 0, 0)
+        PyCamLightControls.dbg_msg("PyCamLights Initializing.")
+
+        if not MODE_NO_PI:
+            PyCamLightControls.dbg_msg("PI modules initializing.")
+            PyCamLightControls.pig_interface = pigpio.pi()
+            # PyCamLightControls.pig_interface.set_PWM_range(PyCamLightControls.GPIO_RED, 255)
+            # PyCamLightControls.pig_interface.set_PWM_range(PyCamLightControls.GPIO_GREEN, 255)
+            # PyCamLightControls.pig_interface.set_PWM_range(PyCamLightControls.GPIO_BLUE, 255)
+
+            if not MODE_NO_CAM:
+                PyCamLightControls.dbg_msg("Camera initializing.")
+                PyCamLightControls.camera_interface = Picamera2()
+
+                sc = PyCamLightControls.camera_interface
+                sc.configure(sc.create_preview_configuration())
+                sc.start()
+
     @staticmethod
     def start_camera_stream():
 
@@ -232,30 +252,7 @@ class PyCamLightControls:
     def access_camera_still_image():
         return PyCamLightControls.access_camera_sensor_mode(False)
 
-    @staticmethod
-    def initialize_pycamlights():
-        PyCamLightControls.lights = light(0,0,0)
-        PyCamLightControls.dbg_msg("PyCamLights Initializing.")
 
-
-        if not MODE_NO_PI:
-            PyCamLightControls.dbg_msg("PI modules initializing.")
-            PyCamLightControls.pig_interface = pigpio.pi()
-            #PyCamLightControls.pig_interface.set_PWM_range(PyCamLightControls.GPIO_RED, 255)
-            #PyCamLightControls.pig_interface.set_PWM_range(PyCamLightControls.GPIO_GREEN, 255)
-            #PyCamLightControls.pig_interface.set_PWM_range(PyCamLightControls.GPIO_BLUE, 255)
-
-            if not MODE_NO_CAM:
-                PyCamLightControls.dbg_msg("Camera initializing.")
-                PyCamLightControls.camera_interface = Picamera2()
-    
-                sc = PyCamLightControls.camera_interface
-                sc.configure(sc.create_preview_configuration())
-                sc.start()
-
-
-        camera_thread = threading.Thread(target=access_camera_stream)
-        camera_thread.start()
 
 # Routes
 @app.route('/lights/set', methods=['GET'])
