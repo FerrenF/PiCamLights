@@ -177,13 +177,13 @@ class PyCamLightControls:
 
 
     @staticmethod
-    def access_camera_sensor_mode(mode=0):
-
-        PyCamLightControls.dbg_msg("Attempting capture image from camera using sensor mode "+str(mode))
-
+    def access_camera_sensor_mode(preview=False):
         sc = PyCamLightControls.camera_interface
-        mode = PCL_CONFIG_SENSOR_MODES[mode]
-        capture_config = sc.create_preview_configuration(sensor={'output_size': mode['size'], 'bit_depth': mode['bit_depth']})
+        PyCamLightControls.dbg_msg("Attempting to capture still image from camera.")
+        if preview:
+            capture_config = sc.create_preview_configuration()
+        else:
+            capture_config = sc.create_still_configuration()
         time.sleep(1)
         data = io.BytesIO()
         sc.switch_mode_and_capture_file(capture_config, data, format='jpeg')
@@ -192,18 +192,11 @@ class PyCamLightControls:
         
     @staticmethod
     def access_camera_lores_image():
-        return PyCamLightControls.access_camera_sensor_mode(0)
+        return PyCamLightControls.access_camera_sensor_mode(True)
         
     @staticmethod
     def access_camera_still_image():
-
-        sc = PyCamLightControls.camera_interface
-        PyCamLightControls.dbg_msg("Attempting to capture still image from camera.")
-        capture_config = sc.create_still_configuration()
-        time.sleep(1)
-        data = io.BytesIO()
-        sc.switch_mode_and_capture_file(capture_config, data, format='jpeg')
-        return data.getvalue()
+        return PyCamLightControls.access_camera_sensor_mode(False)
 
     @staticmethod
     def initialize_pycamlights():
