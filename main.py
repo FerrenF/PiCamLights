@@ -82,7 +82,7 @@ class PyCamLightControls:
     camera_thread = None
     camera_interface = None
     pig_interface = None
-    streaming_output = None
+    streaming_output = StreamingOutput()
     lights = light(0,0,0)
     streaming_started = False
     @staticmethod
@@ -102,7 +102,6 @@ class PyCamLightControls:
             (x, y) = PCL_CONFIG_SENSOR_MODES[0].get("size")
             sc.create_video_configuration(main={"size": (x, y)})
 
-            PyCamLightControls.streaming_output = StreamingOutput()
             sc.start_recording(JpegEncoder(), FileOutput(PyCamLightControls.streaming_output))
 
             PyCamLightControls.streaming_started = True  # Update the flag
