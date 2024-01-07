@@ -192,7 +192,7 @@ class PyCamLightControls:
         
     @staticmethod
     def access_camera_lores_image():
-        return PyCamLightControls.access_camera_sensor_mode(0, True)
+        return PyCamLightControls.access_camera_sensor_mode(0)
         
     @staticmethod
     def access_camera_still_image():
