@@ -24,7 +24,8 @@ PCL_CONFIG_RESOLUTION_X = 320
 PCL_CONFIG_RESOLUTION_Y = 240
 PCL_CONFIG_FRAMERATE = 24
 
-PCL_CONFIG_SENSOR_MODES = [{'bit_depth': 10,
+PCL_CONFIG_SENSOR_MODES = [
+    {'bit_depth': 10,
   'crop_limits': (16, 0, 2560, 1920),
   'exposure_limits': (134, None),
   'format': "SGBRG10_CSI2P",
@@ -51,7 +52,8 @@ PCL_CONFIG_SENSOR_MODES = [{'bit_depth': 10,
   'format': "SGBRG10_CSI2P",
   'fps': 15.63,
   'size': (2592, 1944),
-  'unpacked': 'SGBRG10'}]
+  'unpacked': 'SGBRG10'}
+]
 
 app = Flask(__name__)
 
@@ -93,7 +95,6 @@ class PyCamLightControls:
             return
 
         if MODE_NO_PI or MODE_NO_CAM:
-
             PyCamLightControls.dbg_msg("NO_PI or NO_CAM activated. Generating camera stream. ")
             yield from PyCamLightControls.stream_synthetic_camera()
         else:
@@ -281,13 +282,14 @@ def set_lighting_full():
 @app.route('/stream', methods=['GET'])
 def access_camera_stream():
 
-
     PyCamLightControls.start_camera_stream()
-    def generate():
+    def generate(output):
         while True:
-            with PyCamLightControls.streaming_output.condition:
-                PyCamLightControls.streaming_output.condition.wait()
-                frame = PyCamLightControls.streaming_output.frame
+            with output.condition:
+                PyCamLightControls.dbg_msg("Awaiting frame...")
+                output.condition.wait()
+                frame = output.frame
+
             fps = PCL_CONFIG_SENSOR_MODES[0].get("fps") or 30
             if frame is None:
                 continue
@@ -299,8 +301,7 @@ def access_camera_stream():
             time.sleep(1.0 / fps)
 
 
-    response = Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
+    response = Response(generate(PyCamLightControls.streaming_output), mimetype='multipart/x-mixed-replace; boundary=frame')
     return response
 
 
