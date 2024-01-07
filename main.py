@@ -121,7 +121,7 @@ class PyCamLightControls:
 
         interface.set_PWM_dutycycle(PyCamLightControls.GPIO_RED, current_lights.red)
         interface.set_PWM_dutycycle(PyCamLightControls.GPIO_GREEN, current_lights.green)
-        interface.set_PWM_dutycycle(PyCamLightControls.BLUE, current_lights.blue)
+        interface.set_PWM_dutycycle(PyCamLightControls.GPIO_BLUE, current_lights.blue)
 
     @staticmethod
     def set_lighting(**kwargs):
@@ -236,9 +236,9 @@ class PyCamLightControls:
         if not MODE_NO_PI:
             PyCamLightControls.dbg_msg("PI modules initializing.")
             PyCamLightControls.pig_interface = pigpio.pi()
-            PyCamLightControls.pig_interface.set_PWM_range(PyCamLightControls.GPIO_RED, 255)
-            PyCamLightControls.pig_interface.set_PWM_range(PyCamLightControls.GPIO_GREEN, 255)
-            PyCamLightControls.pig_interface.set_PWM_range(PyCamLightControls.GPIO_BLUE, 255)
+            #PyCamLightControls.pig_interface.set_PWM_range(PyCamLightControls.GPIO_RED, 255)
+            #PyCamLightControls.pig_interface.set_PWM_range(PyCamLightControls.GPIO_GREEN, 255)
+            #PyCamLightControls.pig_interface.set_PWM_range(PyCamLightControls.GPIO_BLUE, 255)
 
             if not MODE_NO_CAM:
                 PyCamLightControls.dbg_msg("Camera initializing.")
@@ -276,10 +276,14 @@ def set_lighting_full():
 
 @app.route('/stream', methods=['GET'])
 def access_camera_stream():
-    def generate():
 
+
+    PyCamLightControls.start_camera_stream()
+    def generate():
         while True:
-            frame = PyCamLightControls.streaming_output.frame
+            with PyCamLightControls.streaming_output.condition:
+                PyCamLightControls.streaming_output.wait()
+                frame = PyCamLightControls.streaming_output.frame
             fps = PCL_CONFIG_SENSOR_MODES[0].get("fps") or 30
             if frame is None:
                 continue
@@ -290,8 +294,6 @@ def access_camera_stream():
                                                                     b'\r\n' + frame + b'\r\n')
             time.sleep(1.0 / fps)
             frame = PyCamLightControls.streaming_output.frame
-
-    PyCamLightControls.start_camera_stream()
 
     response = Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
