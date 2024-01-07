@@ -93,18 +93,23 @@ class PyCamLightControls:
             return
 
         if MODE_NO_PI or MODE_NO_CAM:
+
             PyCamLightControls.dbg_msg("NO_PI or NO_CAM activated. Generating camera stream. ")
             yield from PyCamLightControls.stream_synthetic_camera()
         else:
+
             PyCamLightControls.dbg_msg("Accessing camera stream...")
             sc = PyCamLightControls.camera_interface
 
             (x, y) = PCL_CONFIG_SENSOR_MODES[0].get("size")
+            PyCamLightControls.dbg_msg(f'Creating video configuration with parameters: \n Outpit Size x, y: "{str(x)},{str(y)}')
             sc.create_video_configuration(main={"size": (x, y)})
-
-            sc.start_recording(JpegEncoder(), FileOutput(PyCamLightControls.streaming_output))
+            PyCamLightControls.dbg_msg('Starting encoder')
+            sc.start_encoder(JpegEncoder(), FileOutput(PyCamLightControls.streaming_output))
 
             PyCamLightControls.streaming_started = True  # Update the flag
+
+
     @staticmethod
     def dbg_msg(str):
         if MODE_DEBUG:
@@ -292,7 +297,7 @@ def access_camera_stream():
                    b'Content-Length: ' + f"{len(frame)}".encode() + b'\r\n'
                                                                     b'\r\n' + frame + b'\r\n')
             time.sleep(1.0 / fps)
-            frame = PyCamLightControls.streaming_output.frame
+
 
     response = Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
