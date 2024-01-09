@@ -81,6 +81,18 @@ class light:
     def __str__(self):
         return "RGB:<"+str(self.red)+", "+str(self.green)+", "+str(self.blue)+">"
 
+
+
+def video_stream_monitor():
+    global active_viewers, stream_lock
+    while True:
+        with stream_lock:
+            if active_viewers == 0:
+                PyCamLightControls.dbg_msg("No viewers detected. Stopping encoding.")
+                PyCamLightControls.stop_camera_stream()
+                return
+        time.sleep(10)  # Check every 10 seconds
+
 class PyCamLightControls:
     GPIO_RED = 17
     GPIO_GREEN = 27
@@ -95,16 +107,8 @@ class PyCamLightControls:
     active_viewers = 0
     stream_lock = threading.Lock()
     streaming_started = False
-    stream_monitor_thread = threading.Thread(target=PyCamLightControls.video_stream_monitor())
-    def video_stream_monitor():
-        global active_viewers, stream_lock
-        while True:
-            with stream_lock:
-                if active_viewers == 0:
-                    PyCamLightControls.dbg_msg("No viewers detected. Stopping encoding.")
-                    PyCamLightControls.stop_camera_stream()
-                    return
-            time.sleep(10)  # Check every 10 seconds
+    stream_monitor_thread = threading.Thread(target=video_stream_monitor())
+
 
     @staticmethod
     def reconfigure(mode):
