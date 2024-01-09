@@ -313,6 +313,7 @@ def frame_generate():
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
         time.sleep(1.0 / fps)
+
 @app.route('/stream', methods=['GET'])
 def access_camera_stream():
 
@@ -326,7 +327,6 @@ def access_still_image():
 
         res = request.args.get('res', 'low')
 
-
         if res == 'low':
             image_bytes = PyCamLightControls.access_camera_lores_image()
         elif res == "high":
@@ -336,17 +336,15 @@ def access_still_image():
         
         if not image_bytes:
             return "Failed to capture image", 500
-            
-            
-        page = request.args.get('page', '0')
-        if page == '0':           
-            response = make_response(image_bytes)
-            response.headers['Content-Type'] = 'image/jpeg'
-            return response     
-                
-        
+
+
         encoded_image = base64.b64encode(image_bytes).decode('utf-8')
         encoded_image_url = f"data:image/jpeg;base64,{encoded_image}"
+
+        page = request.args.get('page', '0')
+        if page == '0':
+                return render_template("still_noui.html", imageData=encoded_image_url)
+
         return render_template("still.html", imageData=encoded_image_url)
 
     except Exception as e:

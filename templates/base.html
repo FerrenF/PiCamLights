@@ -1,10 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <title>FlaskApp</title>
-</head>
+{% extends 'head.html' %}
+
+{% block body %}
 <body>
     <h1>Extruder Cam Directory</h1>
     <nav>
@@ -31,4 +27,4 @@
         {% block content %} {% endblock %}
     </div>
 </body>
-</html>
+{% endblock %}
