@@ -57,7 +57,7 @@ PCL_CONFIG_SENSOR_MODES = [
 ]
 
 app = Flask(__name__)
-socketio = SocketIO(app, port=8080)
+socketio = SocketIO(app)
 
 
 
@@ -374,4 +374,4 @@ def test_disconnect():
 if __name__ == '__main__':
 
     PyCamLightControls.initialize_pycamlights()
-    socketio.run(app, debug=False)
+    socketio.run(app, host="0.0.0.0", port=8080, debug=False)
