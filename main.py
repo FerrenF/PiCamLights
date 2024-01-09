@@ -14,6 +14,7 @@ from picamera2.encoders import JpegEncoder
 from picamera2.outputs import FileOutput
 
 from flask import Flask, request, jsonify, render_template, make_response, Response, url_for
+from flask_socketio import SocketIO, disconnect
 
 # Initialize pigpio
 MODE_NO_PI = False
@@ -56,6 +57,9 @@ PCL_CONFIG_SENSOR_MODES = [
 ]
 
 app = Flask(__name__)
+socketio = SocketIO(app, port=8080)
+
+
 
 
 class StreamingOutput(io.BufferedIOBase):
@@ -81,11 +85,42 @@ class PyCamLightControls:
     GPIO_RED = 17
     GPIO_GREEN = 27
     GPIO_BLUE = 22
+    camera_configuration = None
     camera_interface = None
     pig_interface = None
     streaming_output = None
     lights = light(0,0,0)
+
+    # Streaming
+    active_viewers = 0
+    stream_lock = threading.Lock()
     streaming_started = False
+    stream_monitor_thread = threading.Thread(target=PyCamLightControls.video_stream_monitor())
+    def video_stream_monitor():
+        global active_viewers, stream_lock
+        while True:
+            with stream_lock:
+                if active_viewers == 0:
+                    PyCamLightControls.dbg_msg("No viewers detected. Stopping encoding.")
+                    PyCamLightControls.stop_camera_stream()
+                    return
+            time.sleep(10)  # Check every 10 seconds
+
+    @staticmethod
+    def reconfigure(mode):
+        sc = PyCamLightControls.camera_interface
+        if mode == 'video':
+            (x, y) = PCL_CONFIG_SENSOR_MODES[0].get("size")
+            PyCamLightControls.dbg_msg(
+                f'Creating video configuration with parameters: \n Outpit Size x, y: "{str(x)},{str(y)}')
+            PyCamLightControls.camera_configuration = sc.create_video_configuration(main={"size": (x, y)})
+        elif mode == 'still':
+            PyCamLightControls.camera_configuration = sc.create_still_configuration()
+        else:
+            PyCamLightControls.camera_configuration = sc.create_preview_configuration()
+
+        sc.switch_mode(PyCamLightControls.camera_configuration)
+
 
     @staticmethod
     def initialize_pycamlights():
@@ -110,33 +145,23 @@ class PyCamLightControls:
         if PyCamLightControls.streaming_output is None:
             PyCamLightControls.streaming_output = StreamingOutput()
 
-        if PyCamLightControls.streaming_started:
-            PyCamLightControls.dbg_msg("Camera stream is already active.")
-            return
-
         if not MODE_NO_PI and not MODE_NO_CAM:
+
             PyCamLightControls.dbg_msg("Accessing camera stream...")
             sc = PyCamLightControls.camera_interface
-
-            (x, y) = PCL_CONFIG_SENSOR_MODES[0].get("size")
-            PyCamLightControls.dbg_msg(f'Creating video configuration with parameters: \n Outpit Size x, y: "{str(x)},{str(y)}')
-            sc.create_video_configuration(main={"size": (x, y)})
+            PyCamLightControls.reconfigure('video')
             PyCamLightControls.dbg_msg('Starting encoder')
+
             sc.start_encoder(JpegEncoder(), FileOutput(PyCamLightControls.streaming_output))
-
             PyCamLightControls.streaming_started = True  # Update the flag
-
+            PyCamLightControls.stream_monitor_thread.start()
         else:
-
             PyCamLightControls.dbg_msg("NO_PI or NO_CAM activated. Sending fake stream to buffer.")
             image = np.zeros((height, width, 3), dtype=np.uint8)
-            image[:, :] = (255, 0, 0)  # Set image to blue color
-
-            # Convert the image to JPEG format for streaming
+            image[:, :] = (255, 0, 0)
             ret, jpeg = cv2.imencode('.jpg', image)
             PyCamLightControls.streaming_output.write(jpeg)
 
-            return
 
     @staticmethod
     def dbg_msg(str):
@@ -163,6 +188,7 @@ class PyCamLightControls:
        elif (val > 255):
             val = 255
        return val
+
     @staticmethod
     def set_lighting(**kwargs):
         red = kwargs.get("red", -1)
@@ -184,12 +210,11 @@ class PyCamLightControls:
         PyCamLightControls.dbg_msg("Clearing lighting values")
         PyCamLightControls.set_lighting(red=0,green=0,blue=0)
 
-
-
     @staticmethod
     def stop_camera_stream():
         sc = PyCamLightControls.camera_interface
-        sc.stop_recording()
+        sc.stop_encoding()
+
 
     @staticmethod
     def generate_smiley_face(width=320, height=240):
@@ -223,28 +248,19 @@ class PyCamLightControls:
 
         return image
 
-
-
-    @staticmethod
-    def access_camera_sensor_mode(preview=False):
-        sc = PyCamLightControls.camera_interface
-        PyCamLightControls.dbg_msg("Attempting to capture still image from camera.")
-        if preview:
-            capture_config = sc.create_preview_configuration()
-        else:
-            capture_config = sc.create_still_configuration()
-        data = io.BytesIO()
-        sc.switch_mode_and_capture_file(capture_config, data, format='jpeg')
-        return data.getvalue()
-        
-        
     @staticmethod
     def access_camera_lores_image():
-        return PyCamLightControls.access_camera_sensor_mode(True)
+        PyCamLightControls.reconfigure('preview')
+        data = io.BytesIO()
+        sc.capture_file(data, format='jpeg')
+        return data.getvalue()
         
     @staticmethod
     def access_camera_still_image():
-        return PyCamLightControls.access_camera_sensor_mode(False)
+        PyCamLightControls.reconfigure('still')
+        data = io.BytesIO()
+        sc.capture_file(data, format='jpeg')
+        return data.getvalue()
 
 
 
@@ -295,7 +311,7 @@ def access_camera_stream():
 @app.route('/camera', methods=['GET'])
 def access_still_image():
     try:
-        
+
         res = request.args.get('res', 'low')
 
 
@@ -329,9 +345,19 @@ def access_still_image():
 def index_page():
     return render_template("index.html")
 
+@socketio.on('connect')
+def test_connect():
+    with PyCamLightControls.stream_lock:
+        PyCamLightControls.active_viewers += 1
+    print('Client connected')
 
+@socketio.on('disconnect')
+def test_disconnect():
+    with PyCamLightControls.stream_lock:
+        PyCamLightControls.active_viewers -= 1
+    print('Client disconnected')
 
 if __name__ == '__main__':
 
     PyCamLightControls.initialize_pycamlights()
-    app.run(host='0.0.0.0', port=8080)
+    socketio.run(app, debug=True)
