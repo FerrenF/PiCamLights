@@ -103,14 +103,15 @@ class PyCamLightControls:
     streaming_output = None
     lights = light(0,0,0)
 
-    # Streaming
-    streaming_started = False
-    stream_monitor_thread = threading.Thread(target=video_stream_monitor(PyCamLightControls.event_stop_stream()))
 
-    @staticmethod
     def event_stop_stream():
         PyCamLightControls.dbg_msg("No viewers detected. Stopping encoding.")
         PyCamLightControls.stop_camera_stream()
+    # Streaming
+    streaming_started = False
+    stream_monitor_thread = threading.Thread(target=video_stream_monitor(event_stop_stream()))
+
+
 
     @staticmethod
     def reconfigure(mode):
