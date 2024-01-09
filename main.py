@@ -118,9 +118,8 @@ class PyCamLightControls:
             PyCamLightControls.camera_configuration = sc.create_still_configuration()
         else:
             PyCamLightControls.camera_configuration = sc.create_preview_configuration()
-
         sc.switch_mode(PyCamLightControls.camera_configuration)
-        sc.start()
+
 
     @staticmethod
     def initialize_pycamlights():
@@ -140,7 +139,8 @@ class PyCamLightControls:
                 if not MODE_NO_CAM:
                     PyCamLightControls.dbg_msg("Camera initializing.")
                     PyCamLightControls.camera_interface = Picamera2()
-                    PyCamLightControls.reconfigure('preview')
+                    PyCamLightControls.camera_interface.create_preview_configuration()
+                    PyCamLightControls.camera_interface.start()
 
         except Exception as e:
             # Log the exception summary to PyCam...dbg_msg
