@@ -84,6 +84,7 @@ class light:
 
 active_viewers = 0
 stream_lock = threading.Lock()
+stream_monitor_thread = None
 def video_stream_monitor(stop_stream_method):
     global active_viewers ,stream_lock
     while True:
@@ -102,16 +103,8 @@ class PyCamLightControls:
     pig_interface = None
     streaming_output = None
     lights = light(0,0,0)
-
-
-    def event_stop_stream():
-        PyCamLightControls.dbg_msg("No viewers detected. Stopping encoding.")
-        PyCamLightControls.stop_camera_stream()
     # Streaming
     streaming_started = False
-    stream_monitor_thread = threading.Thread(target=video_stream_monitor(event_stop_stream()))
-
-
 
     @staticmethod
     def reconfigure(mode):
@@ -131,6 +124,10 @@ class PyCamLightControls:
 
     @staticmethod
     def initialize_pycamlights():
+        global stream_monitor_thread
+
+        stream_monitor_thread = threading.Thread(target=video_stream_monitor, kwargs={
+            "stop_stream_method" : PyCamLightControls.stop_camera_stream})
         PyCamLightControls.lights = light(0, 0, 0)
         PyCamLightControls.dbg_msg("PyCamLights Initializing.")
 
@@ -219,8 +216,10 @@ class PyCamLightControls:
 
     @staticmethod
     def stop_camera_stream():
+        PyCamLightControls.dbg_msg("No viewers detected. Stopping encoding.")
         sc = PyCamLightControls.camera_interface
         sc.stop_encoding()
+
 
 
     @staticmethod
