@@ -374,4 +374,4 @@ def test_disconnect():
 if __name__ == '__main__':
 
     PyCamLightControls.initialize_pycamlights()
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=False)
