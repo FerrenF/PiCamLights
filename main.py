@@ -362,14 +362,14 @@ def test_connect():
     global active_viewers, stream_lock
     with stream_lock:
         active_viewers += 1
-    print('Client connected')
+    PyCamLightControls.dbg_msg('Client connected')
 
 @socketio.on('disconnect')
 def test_disconnect():
     global active_viewers, stream_lock
     with stream_lock:
         active_viewers -= 1
-    print('Client disconnected')
+    PyCamLightControls.dbg_msg('Client disconnected')
 
 if __name__ == '__main__':
 
