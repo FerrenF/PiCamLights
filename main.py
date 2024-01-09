@@ -95,9 +95,6 @@ class PyCamLightControls:
         if not MODE_NO_PI:
             PyCamLightControls.dbg_msg("PI modules initializing.")
             PyCamLightControls.pig_interface = pigpio.pi()
-            # PyCamLightControls.pig_interface.set_PWM_range(PyCamLightControls.GPIO_RED, 255)
-            # PyCamLightControls.pig_interface.set_PWM_range(PyCamLightControls.GPIO_GREEN, 255)
-            # PyCamLightControls.pig_interface.set_PWM_range(PyCamLightControls.GPIO_BLUE, 255)
 
             if not MODE_NO_CAM:
                 PyCamLightControls.dbg_msg("Camera initializing.")
@@ -131,7 +128,14 @@ class PyCamLightControls:
 
         else:
 
-            PyCamLightControls.dbg_msg("NO_PI or NO_CAM activated.  ")
+            PyCamLightControls.dbg_msg("NO_PI or NO_CAM activated. Sending fake stream to buffer.")
+            image = np.zeros((height, width, 3), dtype=np.uint8)
+            image[:, :] = (255, 0, 0)  # Set image to blue color
+
+            # Convert the image to JPEG format for streaming
+            ret, jpeg = cv2.imencode('.jpg', image)
+            PyCamLightControls.streaming_output.write(jpeg)
+
             return
 
     @staticmethod
@@ -151,19 +155,27 @@ class PyCamLightControls:
         interface.set_PWM_dutycycle(PyCamLightControls.GPIO_GREEN, current_lights.green)
         interface.set_PWM_dutycycle(PyCamLightControls.GPIO_BLUE, current_lights.blue)
 
+
+    @staticmethod
+    def validate_lighting_value(val):
+       if (val < 0):
+           val = 0
+       elif (val > 255):
+            val = 255
+       return val
     @staticmethod
     def set_lighting(**kwargs):
         red = kwargs.get("red", -1)
         if red != -1 :
-            PyCamLightControls.lights.red = max(0,min(red,255))
+            PyCamLightControls.lights.red = validate_lighting_value(red)
 
         green = kwargs.get("green", -1)
         if green != -1:
-            PyCamLightControls.lights.green = max(0,min(green,255))
+            PyCamLightControls.lights.green = validate_lighting_value(green)
 
         blue = kwargs.get("blue", -1)
         if blue != -1:
-            PyCamLightControls.lights.blue = max(0,min(blue,255))
+            PyCamLightControls.lights.blue = validate_lighting_value(blue)
 
         PyCamLightControls.write_lights()
 
@@ -178,27 +190,6 @@ class PyCamLightControls:
     def stop_camera_stream():
         sc = PyCamLightControls.camera_interface
         sc.stop_recording()
-    @staticmethod
-    def stream_synthetic_camera():
-        # Generate synthetic image parameters
-        width, height = PCL_CONFIG_RESOLUTION_X, PCL_CONFIG_RESOLUTION_Y
-        fps = PCL_CONFIG_FRAMERATE
-        delay = 1 / fps
-
-        while True:
-            # Generate a synthetic image (for demonstration, a static blue image)
-            image = np.zeros((height, width, 3), dtype=np.uint8)
-            image[:, :] = (255, 0, 0)  # Set image to blue color
-
-            # Convert the image to JPEG format for streaming
-            ret, jpeg = cv2.imencode('.jpg', image)
-
-            # Yield the image in a format suitable for streaming
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
-
-            # Introduce delay to simulate the frame rate
-            time.sleep(delay)
 
     @staticmethod
     def generate_smiley_face(width=320, height=240):
@@ -283,7 +274,6 @@ def set_lighting_full():
 def frame_generate():
     while True:
         with PyCamLightControls.streaming_output.condition:
-            PyCamLightControls.dbg_msg("Awaiting frame...")
             PyCamLightControls.streaming_output.condition.wait()
             frame = PyCamLightControls.streaming_output.frame
 
