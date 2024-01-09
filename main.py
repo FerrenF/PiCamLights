@@ -89,7 +89,7 @@ def video_stream_monitor(stop_stream_method):
     global active_viewers ,stream_lock
     while True:
         with stream_lock:
-            if active_viewers == 0:
+            if active_viewers == 0 and :
                 stop_stream_method()
                 return
         time.sleep(10)  # Check every 10 seconds
@@ -224,7 +224,7 @@ class PyCamLightControls:
     def stop_camera_stream():
         PyCamLightControls.dbg_msg("No viewers detected. Stopping encoding.")
         sc = PyCamLightControls.camera_interface
-        sc.stop_encoding()
+       # sc.stop_encoding()
 
 
 
