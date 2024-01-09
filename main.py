@@ -82,9 +82,10 @@ class light:
         return "RGB:<"+str(self.red)+", "+str(self.green)+", "+str(self.blue)+">"
 
 
-
+active_viewers = 0
+stream_lock = threading.Lock()
 def video_stream_monitor():
-    global active_viewers, stream_lock
+    global active_viewers ,stream_lock
     while True:
         with stream_lock:
             if active_viewers == 0:
@@ -104,8 +105,6 @@ class PyCamLightControls:
     lights = light(0,0,0)
 
     # Streaming
-    active_viewers = 0
-    stream_lock = threading.Lock()
     streaming_started = False
     stream_monitor_thread = threading.Thread(target=video_stream_monitor())
 
@@ -351,14 +350,16 @@ def index_page():
 
 @socketio.on('connect')
 def test_connect():
-    with PyCamLightControls.stream_lock:
-        PyCamLightControls.active_viewers += 1
+    global active_viewers, stream_lock
+    with stream_lock:
+        active_viewers += 1
     print('Client connected')
 
 @socketio.on('disconnect')
 def test_disconnect():
-    with PyCamLightControls.stream_lock:
-        PyCamLightControls.active_viewers -= 1
+    global active_viewers, stream_lock
+    with stream_lock:
+        active_viewers -= 1
     print('Client disconnected')
 
 if __name__ == '__main__':
