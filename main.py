@@ -89,7 +89,7 @@ def video_stream_monitor(stop_stream_method):
     global active_viewers ,stream_lock
     while True:
         with stream_lock:
-            if active_viewers == 0 and :
+            if active_viewers == 0:
                 stop_stream_method()
                 return
         time.sleep(10)  # Check every 10 seconds
