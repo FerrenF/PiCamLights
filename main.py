@@ -203,15 +203,15 @@ class PyCamLightControls:
     def set_lighting(**kwargs):
         red = kwargs.get("red", -1)
         if red != -1 :
-            PyCamLightControls.lights.red = validate_lighting_value(red)
+            PyCamLightControls.lights.red = PyCamLightControls.validate_lighting_value(red)
 
         green = kwargs.get("green", -1)
         if green != -1:
-            PyCamLightControls.lights.green = validate_lighting_value(green)
+            PyCamLightControls.lights.green = PyCamLightControls.validate_lighting_value(green)
 
         blue = kwargs.get("blue", -1)
         if blue != -1:
-            PyCamLightControls.lights.blue = validate_lighting_value(blue)
+            PyCamLightControls.lights.blue = PyCamLightControls.validate_lighting_value(blue)
 
         PyCamLightControls.write_lights()
 
@@ -264,14 +264,14 @@ class PyCamLightControls:
     def access_camera_lores_image():
         PyCamLightControls.reconfigure('preview')
         data = io.BytesIO()
-        sc.capture_file(data, format='jpeg')
+        PyCamLightControls.camera_interface.capture_file(data, format='jpeg')
         return data.getvalue()
         
     @staticmethod
     def access_camera_still_image():
         PyCamLightControls.reconfigure('still')
         data = io.BytesIO()
-        sc.capture_file(data, format='jpeg')
+        PyCamLightControls.camera_interface.capture_file(data, format='jpeg')
         return data.getvalue()
 
 
