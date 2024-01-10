@@ -1,4 +1,43 @@
-from main import PCL_CONFIG_SENSOR_MODES, MODE_NO_PI, MODE_NO_CAM, MODE_DEBUG_OUTPUT
+
+MODE_NO_PI = False
+MODE_NO_CAM = False
+MODE_DEBUG = False
+MODE_DEBUG_OUTPUT = True
+
+PCL_CONFIG_RESOLUTION_X = 320
+PCL_CONFIG_RESOLUTION_Y = 240
+PCL_CONFIG_FRAMERATE = 24
+
+PCL_CONFIG_SENSOR_MODES = [
+    {'bit_depth': 10,
+  'crop_limits': (16, 0, 2560, 1920),
+  'exposure_limits': (134, None),
+  'format': "SGBRG10_CSI2P",
+  'fps': 58.92,
+  'size': (640, 480),
+  'unpacked': 'SGBRG10'},
+ {'bit_depth': 10,
+  'crop_limits': (0, 0, 2592, 1944),
+  'exposure_limits': (92, 760565, None),
+  'format': "SGBRG10_CSI2P",
+  'fps': 43.25,
+  'size': (1296, 972),
+  'unpacked': 'SGBRG10'},
+ {'bit_depth': 10,
+  'crop_limits': (348, 434, 1928, 1080),
+  'exposure_limits': (118, 760636, None),
+  'format': "SGBRG10_CSI2P",
+  'fps': 30.62,
+  'size': (1920, 1080),
+  'unpacked': 'SGBRG10'},
+ {'bit_depth': 10,
+  'crop_limits': (0, 0, 2592, 1944),
+  'exposure_limits': (130, 969249, None),
+  'format': "SGBRG10_CSI2P",
+  'fps': 15.63,
+  'size': (2592, 1944),
+  'unpacked': 'SGBRG10'}
+]
 
 class StreamingOutput(io.BufferedIOBase):
     def __init__(self):
