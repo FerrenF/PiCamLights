@@ -350,8 +350,9 @@ def access_still_image():
 
         page = request.args.get('page', '0')
         if page == 'false':
-                return Response(encoded_image_url, headers={'type':'image/jpeg'})
-
+                response = make_response(image_bytes)
+                response.headers['Content-Type'] = 'image/jpeg'
+                return response
         return render_template("still.html", imageData=encoded_image_url)
 
     except Exception as e:
