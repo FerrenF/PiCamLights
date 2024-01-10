@@ -18,7 +18,8 @@ from flask_socketio import SocketIO, disconnect
 # Initialize pigpio
 MODE_NO_PI = False
 MODE_NO_CAM = False
-MODE_DEBUG = True
+MODE_DEBUG = False
+MODE_DEBUG_OUTPUT = True
 
 PCL_CONFIG_RESOLUTION_X = 320
 PCL_CONFIG_RESOLUTION_Y = 240
@@ -176,7 +177,7 @@ class PyCamLightControls:
 
     @staticmethod
     def dbg_msg(str):
-        if MODE_DEBUG:
+        if MODE_DEBUG_OUTPUT:
             print(str);
 
     @staticmethod
@@ -319,9 +320,11 @@ def access_still_image():
         PyCamLightControls.dbg_msg(f"Error processing request: {e}")
         return "Internal Server Error", 500
 
+
 @app.route('/')
 def index_page():
     return render_template("index.html")
+
 
 @socketio.on('connect')
 def test_connect():
@@ -337,7 +340,12 @@ def test_disconnect():
         active_viewers -= 1
     PyCamLightControls.dbg_msg('Client disconnected')
 
-if __name__ == '__main__':
 
+def init_app():
     PyCamLightControls.initialize_pycamlights()
+    return app
+
+
+if __name__ == '__main__' and MODE_DEBUG:
+    init_app()
     socketio.run(app, host="0.0.0.0", port=8080, debug=False)
