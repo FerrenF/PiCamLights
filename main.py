@@ -350,7 +350,7 @@ def access_still_image():
 
         page = request.args.get('page', '0')
         if page == 'false':
-                return render_template("still_noui.html", imageData=encoded_image_url)
+                return Response(encoded_image_url, headers={'type':'image/jpeg'})
 
         return render_template("still.html", imageData=encoded_image_url)
 
