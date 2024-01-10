@@ -82,7 +82,6 @@ class PyCamLightControls:
     GPIO_GREEN = 27
     GPIO_BLUE = 22
     camera_configuration = None
-    camera_interface = None
     pig_interface = None
     streaming_output = None
     lights = light(0,0,0)
@@ -93,10 +92,9 @@ class PyCamLightControls:
     def __init__(self):
         PyCamLightControls.initialize_pycamlights()
 
-
     @staticmethod
     def get_camera_interface():
-        if not hasattr(PyCamLightControls, '_camera_interface'):
+        if not hasattr(PyCamLightControls, 'camera_interface'):
             PyCamLightControls.camera_interface = Picamera2()
             PyCamLightControls.camera_interface.create_preview_configuration()
         return PyCamLightControls.camera_interface
@@ -129,8 +127,8 @@ class PyCamLightControls:
 
             if not MODE_NO_CAM:
                 PyCamLightControls.dbg_msg("Camera initializing.")
-                PyCamLightControls.camera_interface = PyCamLightControls.get_camera_interface()
-                PyCamLightControls.camera_interface.start()
+                sc = PyCamLightControls.get_camera_interface()
+                sc.start()
 
         except Exception as e:
             # Log the exception summary to PyCam...dbg_msg
