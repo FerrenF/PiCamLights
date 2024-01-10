@@ -77,20 +77,6 @@ class light:
         return "RGB:<"+str(self.red)+", "+str(self.green)+", "+str(self.blue)+">"
 
 
-active_viewers = 0
-stream_lock = threading.Lock()
-stream_monitor_thread = None
-def video_stream_monitor(stop_stream_method):
-    global active_viewers ,stream_lock
-    while True:
-        with stream_lock:
-            if active_viewers == 0:
-                stop_stream_method()
-                return
-        time.sleep(10)  # Check every 10 seconds
-
-
-
 class PyCamLightControls:
 
     GPIO_RED = 17
@@ -143,7 +129,6 @@ class PyCamLightControls:
     @staticmethod
     def start_camera_stream():
 
-        global stream_monitor_thread, stream_monitor_thread
         if PyCamLightControls.streaming_output is None:
             PyCamLightControls.streaming_output = StreamingOutput()
 
@@ -155,10 +140,6 @@ class PyCamLightControls:
             PyCamLightControls.dbg_msg('Starting encoder')
 
             sc.start_encoder(JpegEncoder(), FileOutput(PyCamLightControls.streaming_output))
-            stream_monitor_thread = threading.Thread(target=video_stream_monitor, kwargs={
-                "stop_stream_method": PyCamLightControls.stop_camera_stream})
-            PyCamLightControls.streaming_started = True  # Update the flag
-            stream_monitor_thread.start()
         else:
             PyCamLightControls.dbg_msg("NO_PI or NO_CAM activated.")
             return
@@ -325,7 +306,4 @@ def init_app():
     PyCamLightControls.initialize_pycamlights()
     return app
 
-
-if __name__ == '__main__' and MODE_DEBUG == True:
-    init_app()
 
