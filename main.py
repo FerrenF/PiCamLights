@@ -113,7 +113,7 @@ class PyCamLightControls:
         sc = PyCamLightControls.camera_interface
         if mode == 'video':
             (x, y) = PCL_CONFIG_SENSOR_MODES[0].get("size")
-            PyCamLightControls.dbg_msg(f'Creating video configuration with parameters: \n Output Size x, y: "{str(x)},{str(y)}"')
+            PyCamLightControls.dbg_msg(f"Creating video configuration with parameters: \n Output Size x, y: {str(x)}, {str(y)}")
             PyCamLightControls.camera_configuration = sc.create_video_configuration(main={"size": (x, y)})
         elif mode == 'still':
             PyCamLightControls.camera_configuration = sc.create_still_configuration()
@@ -345,6 +345,6 @@ def init_app():
     return app
 
 
-if __name__ == '__main__' and MODE_DEBUG:
+if __name__ == '__main__' and MODE_DEBUG == True:
     init_app()
     socketio.run(app, host="0.0.0.0", port=8080, debug=False)
