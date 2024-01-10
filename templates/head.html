@@ -9,7 +9,7 @@
 
 
                 function checkNeedsReload(){
-                     const img = document.getElementById("img_feed")
+                     const img = document.getElementById("#img_feed")
                     if(img instanceof HTMLImageElement){
                         if (!img.src.includes('page=false')) {
                             img.src = img.src+'&page=false';
