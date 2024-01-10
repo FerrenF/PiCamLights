@@ -78,7 +78,6 @@ class light:
 
 
 class PyCamLightControls:
-
     GPIO_RED = 17
     GPIO_GREEN = 27
     GPIO_BLUE = 22
@@ -91,6 +90,10 @@ class PyCamLightControls:
     streaming_started = False
     camera_running = False
 
+    def __init__(self):
+        PyCamLightControls.initialize_pycamlights()
+
+
     @staticmethod
     def get_camera_interface():
         if not hasattr(PyCamLightControls, '_camera_interface'):
@@ -102,7 +105,7 @@ class PyCamLightControls:
     def reconfigure(mode):
         sc = PyCamLightControls.get_camera_interface()
         if not sc:
-            PyCamLightControls.dbg_msg("Problem with camer interface")
+            PyCamLightControls.dbg_msg("Problem with camera interface")
             return
         if mode == 'video':
             (x, y) = PCL_CONFIG_SENSOR_MODES[0].get("size")
@@ -212,16 +215,18 @@ class PyCamLightControls:
 
     @staticmethod
     def access_camera_lores_image():
+        sc = PyCamLightControls.get_camera_interface()
         PyCamLightControls.reconfigure('preview')
         data = io.BytesIO()
-        PyCamLightControls.camera_interface.capture_file(data, format='jpeg')
+        sc.capture_file(data, format='jpeg')
         return data.getvalue()
         
     @staticmethod
     def access_camera_still_image():
+        sc = PyCamLightControls.get_camera_interface()
         PyCamLightControls.reconfigure('still')
         data = io.BytesIO()
-        PyCamLightControls.camera_interface.capture_file(data, format='jpeg')
+        sc.capture_file(data, format='jpeg')
         return data.getvalue()
 
 
@@ -313,5 +318,4 @@ def access_still_image():
 def index_page():
     return render_template("index.html")
 
-
-PyCamLightControls.initialize_pycamlights()
+pycamlights = PyCamLightControls()
