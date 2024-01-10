@@ -113,8 +113,7 @@ class PyCamLightControls:
         sc = PyCamLightControls.camera_interface
         if mode == 'video':
             (x, y) = PCL_CONFIG_SENSOR_MODES[0].get("size")
-            PyCamLightControls.dbg_msg(
-                f'Creating video configuration with parameters: \n Outpit Size x, y: "{str(x)},{str(y)}')
+            PyCamLightControls.dbg_msg(f'Creating video configuration with parameters: \n Output Size x, y: "{str(x)},{str(y)}"')
             PyCamLightControls.camera_configuration = sc.create_video_configuration(main={"size": (x, y)})
         elif mode == 'still':
             PyCamLightControls.camera_configuration = sc.create_still_configuration()
@@ -178,7 +177,7 @@ class PyCamLightControls:
     @staticmethod
     def dbg_msg(str):
         if MODE_DEBUG_OUTPUT:
-            print(str);
+            print(str)
 
     @staticmethod
     def write_lights():
