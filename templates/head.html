@@ -16,6 +16,16 @@
                     const xhttp = new XMLHttpRequest();
                     xhttp.open("GET","/lights/off", true);
                     xhttp.send();
+
+                    const img = document.getElementById("img_feed")
+                    if(img instanceof HTMLImageElement){
+                        if (!img.src.includes('page=false')) {
+                            img.src = img.src+'&page=false';
+                        } else {
+                            // If 'page=false' is already present, simply update the image
+                            img.src = img.src;
+                        }
+                    }
                 }
 
                 var socket = io();

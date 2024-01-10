@@ -323,6 +323,9 @@ def access_camera_stream():
 
 @app.route('/stream', methods=['GET'])
 def stream_page():
+
+    if request.args.get('page','0') == 'false':
+        return access_camera_stream()
     return render_template('stream.html')
 
 @app.route('/camera', methods=['GET'])
