@@ -1,7 +1,7 @@
 from threading import Condition
 import io
 import pigpio
-import picamera2
+from picamera2 import Picamera2
 
 MODE_NO_PI = False
 MODE_NO_CAM = False
