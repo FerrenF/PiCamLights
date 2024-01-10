@@ -1,11 +1,9 @@
 import base64
-
+import pigpio
 import time
 from flask import Flask, request, jsonify, render_template, make_response, Response
 
 from PyCamLightControls import PyCamLightControls
-
-# Initialize pigpio
 
 pycamlights = PyCamLightControls()
 app = Flask(__name__)
