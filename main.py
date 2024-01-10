@@ -148,9 +148,9 @@ class PyCamLightControls:
 
             PyCamLightControls.dbg_msg("Accessing camera stream...")
             sc = PyCamLightControls.get_camera_interface()
+
             PyCamLightControls.reconfigure('video')
             PyCamLightControls.dbg_msg('Starting encoder')
-
             sc.start_encoder(JpegEncoder(), FileOutput(PyCamLightControls.streaming_output))
         else:
             PyCamLightControls.dbg_msg("NO_PI or NO_CAM activated.")
