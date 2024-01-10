@@ -315,12 +315,15 @@ def frame_generate():
 
         time.sleep(1.0 / fps)
 
-@app.route('/stream', methods=['GET'])
-def access_camera_stream():
 
+@app.route('/video', methods=['GET'])
+def access_camera_stream():
     PyCamLightControls.start_camera_stream()
     return Response(frame_generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
+@app.route('/stream', methods=['GET'])
+def stream_page():
+    return render_template('stream.html')
 
 @app.route('/camera', methods=['GET'])
 def access_still_image():
