@@ -93,6 +93,9 @@ class PyCamLightControls:
     @staticmethod
     def reconfigure(mode):
         sc = PyCamLightControls.camera_interface
+        if not sc:
+            PyCamLightControls.dbg_msg("Problem with camer interface")
+            return
         if mode == 'video':
             (x, y) = PCL_CONFIG_SENSOR_MODES[0].get("size")
             PyCamLightControls.dbg_msg(f"Creating video configuration with parameters: \n Output Size x, y: {str(x)}, {str(y)}")
@@ -102,7 +105,6 @@ class PyCamLightControls:
         else:
             PyCamLightControls.camera_configuration = sc.create_preview_configuration()
         sc.switch_mode(PyCamLightControls.camera_configuration)
-        sc.start()
 
     @staticmethod
     def initialize_pycamlights():
@@ -119,6 +121,7 @@ class PyCamLightControls:
                 PyCamLightControls.camera_interface = Picamera2()
                 PyCamLightControls.camera_interface.create_preview_configuration()
                 PyCamLightControls.camera_interface.start()
+
         except Exception as e:
             # Log the exception summary to PyCam...dbg_msg
             PyCamLightControls.dbg_msg(f"Exception during initialization: {str(e)}")
@@ -302,8 +305,4 @@ def index_page():
     return render_template("index.html")
 
 
-def init_app():
-    PyCamLightControls.initialize_pycamlights()
-    return app
-
-
+PyCamLightControls.initialize_pycamlights()
