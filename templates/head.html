@@ -23,14 +23,14 @@
                     const xhttp = new XMLHttpRequest();
                     xhttp.open("GET","/lights/on", true);
                     xhttp.send();
-                    checkNeedsReload();
+                    const reloadTImer = setTimeout(function(){checkNeedsReload()},1000)
                 }
 
                 function lightsOff(){
                     const xhttp = new XMLHttpRequest();
                     xhttp.open("GET","/lights/off", true);
                     xhttp.send();
-                    checkNeedsReload();
+                    const reloadTImer = setTimeout(function(){checkNeedsReload()},1000)
 
                 }
 
