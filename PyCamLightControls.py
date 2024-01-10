@@ -1,5 +1,6 @@
 from threading import Condition
 import io
+import pigpio
 
 MODE_NO_PI = False
 MODE_NO_CAM = False
