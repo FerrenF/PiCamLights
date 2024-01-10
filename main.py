@@ -2,7 +2,6 @@ import pigpio
 import os
 import io
 import numpy as np
-import cv2
 import base64
 import threading
 from threading import Condition
@@ -165,11 +164,8 @@ class PyCamLightControls:
             PyCamLightControls.streaming_started = True  # Update the flag
             stream_monitor_thread.start()
         else:
-            PyCamLightControls.dbg_msg("NO_PI or NO_CAM activated. Sending fake stream to buffer.")
-            image = np.zeros((height, width, 3), dtype=np.uint8)
-            image[:, :] = (255, 0, 0)
-            ret, jpeg = cv2.imencode('.jpg', image)
-            PyCamLightControls.streaming_output.write(jpeg)
+            PyCamLightControls.dbg_msg("NO_PI or NO_CAM activated.")
+            return
 
     @staticmethod
     def stop_camera_stream():
@@ -224,42 +220,6 @@ class PyCamLightControls:
     def clear_lighting():
         PyCamLightControls.dbg_msg("Clearing lighting values")
         PyCamLightControls.set_lighting(red=0,green=0,blue=0)
-
-
-
-
-
-    @staticmethod
-    def generate_smiley_face(width=320, height=240):
-        """
-        Generate a simple smiley face image using NumPy.
-
-        Parameters:
-        - width (int): Width of the image.
-        - height (int): Height of the image.
-
-        Returns:
-        - numpy.ndarray: Smiley face image in BGR format.
-        """
-        # Create a black background
-        image = np.zeros((height, width, 3), dtype=np.uint8)
-
-        # Draw a yellow circle for the face
-        center_x, center_y = width // 2, height // 2
-        radius = min(width, height) // 3
-        cv2.circle(image, (center_x, center_y), radius, (0, 255, 255), -1)  # BGR for yellow: (0, 255, 255)
-
-        # Draw eyes with black circles
-        eye_radius = radius // 6
-        left_eye_center = (center_x - radius // 2, center_y - radius // 2)
-        right_eye_center = (center_x + radius // 2, center_y - radius // 2)
-        cv2.circle(image, left_eye_center, eye_radius, (0, 0, 0), -1)  # BGR for black: (0, 0, 0)
-        cv2.circle(image, right_eye_center, eye_radius, (0, 0, 0), -1)
-
-        # Draw a smile using an arc
-        cv2.ellipse(image, (center_x, center_y + radius // 3), (radius // 2, radius // 2), 0, 0, 180, (0, 0, 0), 2)
-
-        return image
 
     @staticmethod
     def access_camera_lores_image():

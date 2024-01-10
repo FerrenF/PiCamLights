@@ -1,5 +1,5 @@
 pigpio
-picamera
+picamera2
 numpy
-opencv-python
 flask
+flask-socketio
