@@ -1,6 +1,4 @@
-import io
 import base64
-from threading import Condition
 
 import time
 from flask import Flask, request, jsonify, render_template, make_response, Response
