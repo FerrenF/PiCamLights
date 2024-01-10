@@ -152,6 +152,7 @@ class PyCamLightControls:
     @staticmethod
     def start_camera_stream():
 
+        global stream_monitor_thread
         if PyCamLightControls.streaming_output is None:
             PyCamLightControls.streaming_output = StreamingOutput()
 
