@@ -97,6 +97,7 @@ def video_stream_monitor(stop_stream_method):
 
 
 class PyCamLightControls:
+    _initialized = False
     GPIO_RED = 17
     GPIO_GREEN = 27
     GPIO_BLUE = 22
@@ -124,25 +125,26 @@ class PyCamLightControls:
 
     @staticmethod
     def initialize_pycamlights():
-        try:
-            PyCamLightControls.lights = light(0, 0, 0)
-            PyCamLightControls.dbg_msg("PyCamLights Initializing.")
-            if not MODE_NO_PI:
-                PyCamLightControls.dbg_msg("PI modules initializing.")
-                PyCamLightControls.pig_interface = pigpio.pi()
+        if not PyCamLightControls._initialized:
+            try:
+                PyCamLightControls.lights = light(0, 0, 0)
+                PyCamLightControls.dbg_msg("PyCamLights Initializing.")
+                if not MODE_NO_PI:
+                    PyCamLightControls.dbg_msg("PI modules initializing.")
+                    PyCamLightControls.pig_interface = pigpio.pi()
 
-            if not MODE_NO_CAM:
-                PyCamLightControls.dbg_msg("Camera initializing.")
-                PyCamLightControls.camera_interface = Picamera2()
-                PyCamLightControls.camera_interface.create_preview_configuration()
-                PyCamLightControls.camera_interface.start()
-
-        except Exception as e:
-            # Log the exception summary to PyCam...dbg_msg
-            PyCamLightControls.dbg_msg(f"Exception during initialization: {str(e)}")
-            # Handle the exception as required, e.g., exit gracefully or take corrective actions
-            PyCamLightControls.dbg_msg("Exiting the application gracefully due to initialization error.")
-            sys.exit(1)  # Exit with a non-zero status to indicate an error
+                if not MODE_NO_CAM:
+                    PyCamLightControls.dbg_msg("Camera initializing.")
+                    PyCamLightControls.camera_interface = Picamera2()
+                    PyCamLightControls.camera_interface.create_preview_configuration()
+                    PyCamLightControls.camera_interface.start()
+                PyCamLightControls._initialized = True
+            except Exception as e:
+                # Log the exception summary to PyCam...dbg_msg
+                PyCamLightControls.dbg_msg(f"Exception during initialization: {str(e)}")
+                # Handle the exception as required, e.g., exit gracefully or take corrective actions
+                PyCamLightControls.dbg_msg("Exiting the application gracefully due to initialization error.")
+                sys.exit(1)  # Exit with a non-zero status to indicate an error
 
     @staticmethod
     def start_camera_stream():
