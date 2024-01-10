@@ -84,7 +84,6 @@ class light:
 
 active_viewers = 0
 stream_lock = threading.Lock()
-stream_monitor_thread = None
 def video_stream_monitor(stop_stream_method):
     global active_viewers ,stream_lock
     while True:
@@ -94,6 +93,8 @@ def video_stream_monitor(stop_stream_method):
                 return
         time.sleep(10)  # Check every 10 seconds
 
+stream_monitor_thread = threading.Thread(target=video_stream_monitor, kwargs={
+                "stop_stream_method": PyCamLightControls.stop_camera_stream})
 class PyCamLightControls:
     GPIO_RED = 17
     GPIO_GREEN = 27
@@ -123,11 +124,7 @@ class PyCamLightControls:
 
     @staticmethod
     def initialize_pycamlights():
-        global stream_monitor_thread
-
-        try:
-            stream_monitor_thread = threading.Thread(target=video_stream_monitor, kwargs={
-                "stop_stream_method": PyCamLightControls.stop_camera_stream})
+               try:
 
             PyCamLightControls.lights = light(0, 0, 0)
             PyCamLightControls.dbg_msg("PyCamLights Initializing.")
