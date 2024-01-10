@@ -84,6 +84,7 @@ class light:
 
 active_viewers = 0
 stream_lock = threading.Lock()
+stream_monitor_thread = None
 def video_stream_monitor(stop_stream_method):
     global active_viewers ,stream_lock
     while True:
@@ -93,7 +94,7 @@ def video_stream_monitor(stop_stream_method):
                 return
         time.sleep(10)  # Check every 10 seconds
 
-stream_monitor_thread = threading.Thread(target=video_stream_monitor, kwargs={"stop_stream_method": PyCamLightControls.stop_camera_stream})
+
 
 class PyCamLightControls:
     GPIO_RED = 17
@@ -159,6 +160,8 @@ class PyCamLightControls:
             PyCamLightControls.dbg_msg('Starting encoder')
 
             sc.start_encoder(JpegEncoder(), FileOutput(PyCamLightControls.streaming_output))
+            stream_monitor_thread = threading.Thread(target=video_stream_monitor, kwargs={
+                "stop_stream_method": PyCamLightControls.stop_camera_stream})
             PyCamLightControls.streaming_started = True  # Update the flag
             PyCamLightControls.stream_monitor_thread.start()
         else:
@@ -168,7 +171,13 @@ class PyCamLightControls:
             ret, jpeg = cv2.imencode('.jpg', image)
             PyCamLightControls.streaming_output.write(jpeg)
 
-
+    @staticmethod
+    def stop_camera_stream():
+        PyCamLightControls.dbg_msg("No viewers detected. Stopping encoding.")
+        sc = PyCamLightControls.camera_interface
+        PyCamLightControls.streaming_started = False
+        sc.stop_encoding()
+            
     @staticmethod
     def dbg_msg(str):
         if MODE_DEBUG:
@@ -216,11 +225,7 @@ class PyCamLightControls:
         PyCamLightControls.dbg_msg("Clearing lighting values")
         PyCamLightControls.set_lighting(red=0,green=0,blue=0)
 
-    @staticmethod
-    def stop_camera_stream():
-        PyCamLightControls.dbg_msg("No viewers detected. Stopping encoding.")
-        sc = PyCamLightControls.camera_interface
-       # sc.stop_encoding()
+
 
 
 
