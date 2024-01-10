@@ -96,7 +96,6 @@ class PyCamLightControls:
         if not hasattr(PyCamLightControls, '_camera_interface'):
             PyCamLightControls.camera_interface = Picamera2()
             PyCamLightControls.camera_interface.create_preview_configuration()
-            PyCamLightControls.camera_interface.start()
         return PyCamLightControls.camera_interface
 
     @staticmethod
@@ -128,7 +127,6 @@ class PyCamLightControls:
             if not MODE_NO_CAM:
                 PyCamLightControls.dbg_msg("Camera initializing.")
                 PyCamLightControls.camera_interface = PyCamLightControls.get_camera_interface()
-                PyCamLightControls.camera_interface.create_preview_configuration()
                 PyCamLightControls.camera_interface.start()
 
         except Exception as e:
