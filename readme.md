@@ -10,7 +10,7 @@ This application provides control over the lighting and camera functionalities f
 - **High-Resolution Images**: Capture high-resolution still images of your printing process.
 - **User Interface**: A user-friendly web interface to control and monitor your 3D printer enclosure remotely.
 - **Compatibility**: Works seamlessly with OctoPrint's classic webcam plugin.
-
+![screenshot.png](screenshot.png)
 ## Prerequisites
 
 - Python 3.x installed on your system.
