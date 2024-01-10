@@ -83,16 +83,25 @@ class PyCamLightControls:
     GPIO_GREEN = 27
     GPIO_BLUE = 22
     camera_configuration = None
-    camera_interface = None
+    _camera_interface = None
     pig_interface = None
     streaming_output = None
     lights = light(0,0,0)
     # Streaming
     streaming_started = False
     camera_running = False
+
+    @staticmethod
+    def get_camera_interface():
+        if not hasattr(PyCamLightControls, '_camera_interface'):
+            PyCamLightControls._camera_interface = Picamera2()
+            PyCamLightControls._camera_interface.create_preview_configuration()
+            PyCamLightControls._camera_interface.start()
+        return PyCamLightControls._camera_interface
+
     @staticmethod
     def reconfigure(mode):
-        sc = PyCamLightControls.camera_interface
+        sc = PyCamLightControls.get_camera_interface()
         if not sc:
             PyCamLightControls.dbg_msg("Problem with camer interface")
             return
@@ -118,9 +127,9 @@ class PyCamLightControls:
 
             if not MODE_NO_CAM:
                 PyCamLightControls.dbg_msg("Camera initializing.")
-                PyCamLightControls.camera_interface = Picamera2()
-                PyCamLightControls.camera_interface.create_preview_configuration()
-                PyCamLightControls.camera_interface.start()
+                PyCamLightControls._camera_interface = PyCamLightControls.get_camera_interface()
+                PyCamLightControls._camera_interface.create_preview_configuration()
+                PyCamLightControls._camera_interface.start()
 
         except Exception as e:
             # Log the exception summary to PyCam...dbg_msg
@@ -138,7 +147,7 @@ class PyCamLightControls:
         if not MODE_NO_PI and not MODE_NO_CAM:
 
             PyCamLightControls.dbg_msg("Accessing camera stream...")
-            sc = PyCamLightControls.camera_interface
+            sc = PyCamLightControls.get_camera_interface()
             PyCamLightControls.reconfigure('video')
             PyCamLightControls.dbg_msg('Starting encoder')
 
@@ -150,7 +159,7 @@ class PyCamLightControls:
     @staticmethod
     def stop_camera_stream():
         PyCamLightControls.dbg_msg("No viewers detected. Stopping encoding.")
-        sc = PyCamLightControls.camera_interface
+        sc = PyCamLightControls.get_camera_interface()
         PyCamLightControls.streaming_started = False
         sc.stop_encoding()
 
@@ -205,14 +214,14 @@ class PyCamLightControls:
     def access_camera_lores_image():
         PyCamLightControls.reconfigure('preview')
         data = io.BytesIO()
-        PyCamLightControls.camera_interface.capture_file(data, format='jpeg')
+        PyCamLightControls._camera_interface.capture_file(data, format='jpeg')
         return data.getvalue()
         
     @staticmethod
     def access_camera_still_image():
         PyCamLightControls.reconfigure('still')
         data = io.BytesIO()
-        PyCamLightControls.camera_interface.capture_file(data, format='jpeg')
+        PyCamLightControls._camera_interface.capture_file(data, format='jpeg')
         return data.getvalue()
 
 
