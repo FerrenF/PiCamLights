@@ -1,4 +1,23 @@
-from main import light, PCL_CONFIG_SENSOR_MODES, MODE_NO_PI, MODE_NO_CAM, StreamingOutput, MODE_DEBUG_OUTPUT
+from main import PCL_CONFIG_SENSOR_MODES, MODE_NO_PI, MODE_NO_CAM, MODE_DEBUG_OUTPUT
+
+class StreamingOutput(io.BufferedIOBase):
+    def __init__(self):
+        self.frame = None
+        self.condition = Condition()
+
+    def write(self, buf):
+        with self.condition:
+            self.frame = buf
+            self.condition.notify_all()
+
+
+class light:
+    def __init__(self, red, green, blue):
+        self.red = red
+        self.green = green
+        self.blue = blue
+    def __str__(self):
+        return "RGB:<"+str(self.red)+", "+str(self.green)+", "+str(self.blue)+">"
 
 
 class PyCamLightControls:

@@ -53,25 +53,6 @@ pycamlights = PyCamLightControls()
 app = Flask(__name__)
 
 
-class StreamingOutput(io.BufferedIOBase):
-    def __init__(self):
-        self.frame = None
-        self.condition = Condition()
-
-    def write(self, buf):
-        with self.condition:
-            self.frame = buf
-            self.condition.notify_all()
-
-
-class light:
-    def __init__(self, red, green, blue):
-        self.red = red
-        self.green = green
-        self.blue = blue
-    def __str__(self):
-        return "RGB:<"+str(self.red)+", "+str(self.green)+", "+str(self.blue)+">"
-
 
 # Routes
 @app.route('/lights/set', methods=['GET'])
