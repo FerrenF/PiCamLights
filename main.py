@@ -346,7 +346,7 @@ def access_still_image():
         encoded_image_url = f"data:image/jpeg;base64,{encoded_image}"
 
         page = request.args.get('page', '0')
-        if page == '0':
+        if page == 'false':
                 return render_template("still_noui.html", imageData=encoded_image_url)
 
         return render_template("still.html", imageData=encoded_image_url)
