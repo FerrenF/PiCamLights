@@ -163,7 +163,7 @@ class PyCamLightControls:
             stream_monitor_thread = threading.Thread(target=video_stream_monitor, kwargs={
                 "stop_stream_method": PyCamLightControls.stop_camera_stream})
             PyCamLightControls.streaming_started = True  # Update the flag
-            PyCamLightControls.stream_monitor_thread.start()
+            stream_monitor_thread.start()
         else:
             PyCamLightControls.dbg_msg("NO_PI or NO_CAM activated. Sending fake stream to buffer.")
             image = np.zeros((height, width, 3), dtype=np.uint8)
@@ -177,7 +177,7 @@ class PyCamLightControls:
         sc = PyCamLightControls.camera_interface
         PyCamLightControls.streaming_started = False
         sc.stop_encoding()
-            
+
     @staticmethod
     def dbg_msg(str):
         if MODE_DEBUG:
