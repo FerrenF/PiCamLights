@@ -102,7 +102,7 @@ class PyCamLightControls:
         else:
             PyCamLightControls.camera_configuration = sc.create_preview_configuration()
         sc.switch_mode(PyCamLightControls.camera_configuration)
-
+        sc.start()
 
     @staticmethod
     def initialize_pycamlights():
