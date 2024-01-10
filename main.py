@@ -13,7 +13,6 @@ from picamera2.encoders import JpegEncoder
 from picamera2.outputs import FileOutput
 
 from flask import Flask, request, jsonify, render_template, make_response, Response, url_for
-from flask_socketio import SocketIO, disconnect
 
 # Initialize pigpio
 MODE_NO_PI = False
@@ -57,10 +56,6 @@ PCL_CONFIG_SENSOR_MODES = [
 ]
 
 app = Flask(__name__)
-socketio = SocketIO(app)
-
-
-
 
 class StreamingOutput(io.BufferedIOBase):
     def __init__(self):
@@ -326,21 +321,6 @@ def index_page():
     return render_template("index.html")
 
 
-@socketio.on('connect')
-def test_connect():
-    global active_viewers, stream_lock
-    with stream_lock:
-        active_viewers += 1
-    PyCamLightControls.dbg_msg('Client connected')
-
-@socketio.on('disconnect')
-def test_disconnect():
-    global active_viewers, stream_lock
-    with stream_lock:
-        active_viewers -= 1
-    PyCamLightControls.dbg_msg('Client disconnected')
-
-
 def init_app():
     PyCamLightControls.initialize_pycamlights()
     return app
@@ -348,4 +328,4 @@ def init_app():
 
 if __name__ == '__main__' and MODE_DEBUG == True:
     init_app()
-    socketio.run(app, host="0.0.0.0", port=8080, debug=False)
+
