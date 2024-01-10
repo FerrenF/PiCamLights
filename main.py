@@ -93,8 +93,8 @@ def video_stream_monitor(stop_stream_method):
                 return
         time.sleep(10)  # Check every 10 seconds
 
-stream_monitor_thread = threading.Thread(target=video_stream_monitor, kwargs={
-                "stop_stream_method": PyCamLightControls.stop_camera_stream})
+stream_monitor_thread = threading.Thread(target=video_stream_monitor, kwargs={"stop_stream_method": PyCamLightControls.stop_camera_stream})
+
 class PyCamLightControls:
     GPIO_RED = 17
     GPIO_GREEN = 27
@@ -124,20 +124,18 @@ class PyCamLightControls:
 
     @staticmethod
     def initialize_pycamlights():
-               try:
-
+        try:
             PyCamLightControls.lights = light(0, 0, 0)
             PyCamLightControls.dbg_msg("PyCamLights Initializing.")
-
             if not MODE_NO_PI:
                 PyCamLightControls.dbg_msg("PI modules initializing.")
                 PyCamLightControls.pig_interface = pigpio.pi()
 
-                if not MODE_NO_CAM:
-                    PyCamLightControls.dbg_msg("Camera initializing.")
-                    PyCamLightControls.camera_interface = Picamera2()
-                    PyCamLightControls.camera_interface.create_preview_configuration()
-                    PyCamLightControls.camera_interface.start()
+            if not MODE_NO_CAM:
+                PyCamLightControls.dbg_msg("Camera initializing.")
+                PyCamLightControls.camera_interface = Picamera2()
+                PyCamLightControls.camera_interface.create_preview_configuration()
+                PyCamLightControls.camera_interface.start()
 
         except Exception as e:
             # Log the exception summary to PyCam...dbg_msg
