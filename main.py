@@ -55,7 +55,7 @@ PCL_CONFIG_SENSOR_MODES = [
   'unpacked': 'SGBRG10'}
 ]
 
-app = Flask(__name__)
+
 
 class StreamingOutput(io.BufferedIOBase):
     def __init__(self):
@@ -317,3 +317,4 @@ def index_page():
     return render_template("index.html")
 
 pycamlights = PyCamLightControls()
+app = Flask(__name__)
