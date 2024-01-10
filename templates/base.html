@@ -7,7 +7,7 @@
         <ul>
             <li><a href="#">Home</a></li>
             <li><a href="/camera">Camera</a></li>
-            <script src="socket.io.min.js"></script>
+            <script src="{{ url_for('static', filename='socket.io.min.js') }}"></script>
             <script type="text/javascript">
                 function lightsOn(){
                     const xhttp = new XMLHttpRequest();
