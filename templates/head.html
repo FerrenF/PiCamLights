@@ -7,30 +7,18 @@
     <script src="{{ url_for('static', filename='socket.io.min.js') }}"></script>
             <script type="text/javascript">
 
-
-                function checkNeedsReload(){
-                     const img = document.getElementById("#img_feed")
-                    if(img instanceof HTMLImageElement){
-                        if (!img.src.includes('page=false')) {
-                            img.src = img.src+'&page=false';
-                        } else {
-                            // If 'page=false' is already present, simply update the image
-                            img.src = img.src;
-                        }
-                    }
-                }
                 function lightsOn(){
                     const xhttp = new XMLHttpRequest();
                     xhttp.open("GET","/lights/on", true);
                     xhttp.send();
-                    const reloadTImer = setTimeout(function(){checkNeedsReload()},1000)
+                    const reloadTImer = setTimeout(function(){window.location.reload()},1000)
                 }
 
                 function lightsOff(){
                     const xhttp = new XMLHttpRequest();
                     xhttp.open("GET","/lights/off", true);
                     xhttp.send();
-                    const reloadTImer = setTimeout(function(){checkNeedsReload()},1000)
+                    const reloadTImer = setTimeout(function(){window.location.reload()},1000)
 
                 }
 
