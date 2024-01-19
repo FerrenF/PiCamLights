@@ -3,7 +3,6 @@ import time
 from flask import Flask, request, jsonify, render_template, make_response, Response
 
 from PyCamLightControls import PyCamLightControls
-from gunicorn_start import dbg_msg
 
 app = Flask(__name__)
 
