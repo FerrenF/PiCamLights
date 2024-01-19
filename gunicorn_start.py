@@ -3,7 +3,7 @@ import multiprocessing
 import gunicorn.app.base
 from multiprocessing import Array, Manager, Value
 from signal import SIGHUP
-from PyCamLightControls import initialize_pycamlights
+import PyCamLightControls
 from PyCamLightsFlaskApp import app
 
 MODE_DEBUG = False

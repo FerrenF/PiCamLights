@@ -4,8 +4,6 @@ import io
 import pigpio
 
 from picamera2 import Picamera2
-
-from gunicorn_start import app_context, dbg_msg
 from constants import PYLIGHTCONTEXT
 
 MODE_NO_PI = False
