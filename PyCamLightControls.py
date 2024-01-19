@@ -1,12 +1,16 @@
+from enum import Enum
 from threading import Condition
 import io
 import pigpio
+
 from picamera2 import Picamera2
 
+from gunicorn_start import app_context, dbg_msg
+from constants import PYLIGHTCONTEXT
+
 MODE_NO_PI = False
-MODE_NO_CAM = False
-MODE_DEBUG = False
-MODE_DEBUG_OUTPUT = True
+MODE_NO_CAM = True
+
 
 PCL_CONFIG_RESOLUTION_X = 320
 PCL_CONFIG_RESOLUTION_Y = 240
@@ -43,6 +47,11 @@ PCL_CONFIG_SENSOR_MODES = [
   'unpacked': 'SGBRG10'}
 ]
 
+class CameraModes(Enum):
+    CAMERA_MODE_PREVIEW=0
+    CAMERA_MODE_VIDEO=1
+    CAMERA_MODE_STILL=2
+
 class StreamingOutput(io.BufferedIOBase):
     def __init__(self):
         self.frame = None
@@ -68,62 +77,121 @@ class PyCamLightControls:
     GPIO_GREEN = 27
     GPIO_BLUE = 22
     camera_configuration = None
-    pig_interface = None
+
     streaming_output = None
-    lights = light(0,0,0)
+
     # Streaming
     streaming_started = False
     camera_running = False
 
-    def __init__(self):
-        PyCamLightControls.initialize_pycamlights()
+    _context = None
+    _camera_interface = None
+    _pig_interface = None
+
+    def __init__(self, context):
+        PyCamLightControls._context = context
+        try:
+            PyCamLightControls._init_pigpio()
+            PyCamLightControls._initialize_camera()
+        except RuntimeError as E:
+            dbg_msg("PyCamLights failed to initialize: "+E.__str__())
 
     @staticmethod
-    def get_camera_interface():
-        if not hasattr(PyCamLightControls, 'camera_interface'):
-            PyCamLightControls.camera_interface = Picamera2()
-        return PyCamLightControls.camera_interface
+    def pigpio_initialized():
+        if not PyCamLightControls.has_context():
+            raise RuntimeError("Could not initialize pigpio in app context: missing")
+        _ap = PyCamLightControls.get_context()
+        return _ap[PYLIGHTCONTEXT.PIGPIO_INITIALIZED]
 
     @staticmethod
-    def reconfigure(mode):
-        sc = PyCamLightControls.get_camera_interface()
-        if not sc:
-            PyCamLightControls.dbg_msg("Problem with camera interface")
+    def get_pigpio_interface():
+        _ap = PyCamLightControls.get_context()
+        if not _ap:
+            raise RuntimeError("Could not retrieve pigpio interface: context missing.")
+        return _ap[PYLIGHTCONTEXT.PIGPIO_INTERFACE]
+
+    @staticmethod
+    def _init_pigpio():
+        if not PyCamLightControls.has_context():
+            raise RuntimeError("Could not initialize pigpio in app context: missing")
+        _ap = PyCamLightControls.get_context()
+
+        if MODE_NO_PI:
+            dbg_msg("NO_PI mode is enabled. Skipping pigpio initialization.")
             return
-        if mode == 'video':
-            (x, y) = PCL_CONFIG_SENSOR_MODES[0].get("size")
-            PyCamLightControls.dbg_msg(f"Creating video configuration with parameters: \n Output Size x, y: {str(x)}, {str(y)}")
-            PyCamLightControls.camera_configuration = sc.create_video_configuration(main={"size": (x, y)})
-        elif mode == 'still':
-            PyCamLightControls.camera_configuration = sc.create_still_configuration()
-        else:
-            PyCamLightControls.camera_configuration = sc.create_preview_configuration()
-        sc.switch_mode(PyCamLightControls.camera_configuration)
+
+        if not PyCamLightControls.pigpio_initialized():
+            try:
+                _ap[PYLIGHTCONTEXT.PIGPIO_INTERFACE] = pigpio.pi()
+            except RuntimeError as E:
+                dbg_msg("Failed to initialize pigpio: "+E.__str__())
+            else:
+                _ap[PYLIGHTCONTEXT.PIGPIO_INITIALIZED] = True
 
     @staticmethod
-    def initialize_pycamlights():
+    def has_context():
+        return PyCamLightControls._context is None
+
+    @staticmethod
+    def get_context():
+        return PyCamLightControls._context
+
+    @staticmethod
+    def is_camera_initialized():
+        _ap = PyCamLightControls.get_context()
+        return _ap[PYLIGHTCONTEXT.CAMERA_INITIALIZED]
+
+    @staticmethod
+    def get_camera_interface() -> Picamera2:
+        if PyCamLightControls.has_context() and not MODE_NO_CAM:
+            _ap = PyCamLightControls.get_context()
+            if _ap[PYLIGHTCONTEXT.CAMERA_INITIALIZED] is False:
+                PyCamLightControls._initialize_camera()
+            return _ap[PYLIGHTCONTEXT.CAMERA_INTERFACE]
+        raise RuntimeError("Camera interface is empty.")
+
+    @staticmethod
+    def _reconfigure(mode):
 
         try:
-            PyCamLightControls.lights = light(0, 0, 0)
-            PyCamLightControls.dbg_msg("PyCamLights Initializing.")
-            if not MODE_NO_PI:
-                PyCamLightControls.dbg_msg("PI modules initializing.")
-                PyCamLightControls.pig_interface = pigpio.pi()
+            sc = PyCamLightControls.get_camera_interface()
+            if mode == CameraModes.CAMERA_MODE_VIDEO:
+                (x, y) = PCL_CONFIG_SENSOR_MODES[0].get("size")
+                PyCamLightControls.camera_configuration = sc.create_video_configuration(main={"size": (x, y)})
+            elif mode == CameraModes.CAMERA_MODE_STILL:
+                PyCamLightControls.camera_configuration = sc.create_still_configuration()
+            else:
+                PyCamLightControls.camera_configuration = sc.create_preview_configuration()
 
-            if not MODE_NO_CAM:
-                PyCamLightControls.dbg_msg("Camera initializing.")
-                sc = PyCamLightControls.get_camera_interface()
-                PyCamLightControls.camera_interface.create_preview_configuration()
-                sc.start()
+        except RuntimeError as e:
+            dbg_msg("Error creating camera configuration: "+e.__str__())
+        else:
+            try:
+                sc.switch_mode(PyCamLightControls.camera_configuration)
+            except RuntimeError as E:
+                dbg_msg("Error switching to camera configuration"+E.__str__())
+        return
 
-        except Exception as e:
-            # Log the exception summary to PyCam...dbg_msg
-            PyCamLightControls.dbg_msg(f"Exception during initialization: {str(e)}")
-            # Handle the exception as required, e.g., exit gracefully or take corrective actions
-            PyCamLightControls.dbg_msg("Exiting the application gracefully due to initialization error.")
-            # Exit with a non-zero status to indicate an error
+    @staticmethod
+    def _initialize_camera():
+        _ap = PyCamLightControls.get_context()
 
+        if PyCamLightControls.is_camera_initialized():
+            dbg_msg("PyCamLights is already initialized. Skipping.")
+            return False
 
+        if MODE_NO_CAM:
+            dbg_msg("NO_CAM mode is set. Skipping camera initialization.")
+            return False
+
+        _ap[PYLIGHTCONTEXT.CAMERA_INTERFACE] = Picamera2()
+
+        try:
+            PyCamLightControls._reconfigure(CameraModes.CAMERA_MODE_PREVIEW)
+        except RuntimeError as E:
+            dbg_msg("Error encountered reconfiguring camera during initialization.")
+        else:
+            _ap[PYLIGHTCONTEXT.CAMERA_INITIALIZED] = 'True'
 
     @staticmethod
     def start_camera_stream():
@@ -133,83 +201,129 @@ class PyCamLightControls:
 
         if not MODE_NO_PI and not MODE_NO_CAM:
 
-            PyCamLightControls.dbg_msg("Accessing camera stream...")
+            dbg_msg("Accessing camera stream...")
             sc = PyCamLightControls.get_camera_interface()
 
-            PyCamLightControls.reconfigure('video')
-            PyCamLightControls.dbg_msg('Starting encoder')
-            sc.start_encoder(JpegEncoder(), FileOutput(PyCamLightControls.streaming_output))
+            PyCamLightControls._reconfigure(CameraModes.CAMERA_MODE_VIDEO)
+            dbg_msg('Starting encoder')
+           # sc.start_encoder(JpegEncoder(), FileOutput(PyCamLightControls.streaming_output))
         else:
-            PyCamLightControls.dbg_msg("NO_PI or NO_CAM activated.")
+            dbg_msg("NO_PI or NO_CAM activated.")
             return
 
     @staticmethod
     def stop_camera_stream():
-        PyCamLightControls.dbg_msg("No viewers detected. Stopping encoding.")
-        sc = PyCamLightControls.get_camera_interface()
-        PyCamLightControls.streaming_started = False
-        sc.stop_encoding()
+        dbg_msg("No viewers detected. Stopping encoding.")
 
     @staticmethod
-    def dbg_msg(str):
-        if MODE_DEBUG_OUTPUT:
-            print(str)
+    def get_light_on():
+        _ap = PyCamLightControls.get_context()
+        if not _ap:
+            dbg_msg("Could not retrieve status of lights. Assuming off.")
+            return False
+        return _ap[PYLIGHTCONTEXT.CURRENT_LIGHT_STATUS]
+
+    @staticmethod
+    def get_lights() -> light:
+        _ap = PyCamLightControls.get_context()
+        if not _ap:
+            return light(0, 0, 0)
+        return _ap[PYLIGHTCONTEXT.CURRENT_LIGHT_VALUE]
+
+    @staticmethod
+    def set_lights(value):
+        _ap = PyCamLightControls.get_context()
+        _ap[PYLIGHTCONTEXT.CURRENT_LIGHT_VALUE] = value
 
     @staticmethod
     def write_lights():
-        interface = PyCamLightControls.pig_interface
-        current_lights = PyCamLightControls.lights;
-        if MODE_NO_PI:
-            PyCamLightControls.dbg_msg("NO_PI mode is on. Write lights returns true and sets the lights to: "+ current_lights.__str__())
-            return True
 
-        interface.set_PWM_dutycycle(PyCamLightControls.GPIO_RED, current_lights.red)
-        interface.set_PWM_dutycycle(PyCamLightControls.GPIO_GREEN, current_lights.green)
-        interface.set_PWM_dutycycle(PyCamLightControls.GPIO_BLUE, current_lights.blue)
+        try:
+            interface = PyCamLightControls.get_pigpio_interface()
+            current_lights = PyCamLightControls.get_lights()
 
+            if MODE_NO_PI:
+                dbg_msg("NO_PI mode is on. Skipping body of write_lights with params: "+ current_lights.__str__())
+                return True
+
+        except pigpio.error as E:
+            dbg_msg("Problem updating light status: " + E.__str__())
+
+        else:
+
+            try:
+                interface.set_PWM_dutycycle(PyCamLightControls.GPIO_RED, current_lights.red)
+                interface.set_PWM_dutycycle(PyCamLightControls.GPIO_GREEN, current_lights.green)
+                interface.set_PWM_dutycycle(PyCamLightControls.GPIO_BLUE, current_lights.blue)
+
+            except pigpio.error as F:
+                dbg_msg("Problem setting light value: " + F.__str__())
 
     @staticmethod
-    def validate_lighting_value(val):
-       if (val < 0):
-           val = 0
-       elif (val > 255):
-            val = 255
-       return val
+    def set_lighting_values(**kwargs):
 
-    @staticmethod
-    def set_lighting(**kwargs):
+        def validate_lighting_value(val):
+            return min(max(val, 0), 255)
+
+        li = PyCamLightControls.get_lights()
         red = kwargs.get("red", -1)
-        if red != -1 :
-            PyCamLightControls.lights.red = PyCamLightControls.validate_lighting_value(red)
+        if red != -1:
+            li.red = validate_lighting_value(red)
 
         green = kwargs.get("green", -1)
         if green != -1:
-            PyCamLightControls.lights.green = PyCamLightControls.validate_lighting_value(green)
+            li.green = validate_lighting_value(green)
 
         blue = kwargs.get("blue", -1)
         if blue != -1:
-            PyCamLightControls.lights.blue = PyCamLightControls.validate_lighting_value(blue)
+            li.blue = validate_lighting_value(blue)
 
         PyCamLightControls.write_lights()
 
     @staticmethod
     def clear_lighting():
-        PyCamLightControls.dbg_msg("Clearing lighting values")
-        PyCamLightControls.set_lighting(red=0,green=0,blue=0)
+        dbg_msg("Clearing lighting values")
+        PyCamLightControls.set_lighting_values(red=0, green=0, blue=0)
+
+    @staticmethod
+    def _access_camera(mode: CameraModes):
+        sc = PyCamLightControls.get_camera_interface()
+        PyCamLightControls._reconfigure(mode)
+        data = io.BytesIO()
+        sc.capture_file(data, format='jpeg')
+        return data.getvalue()
 
     @staticmethod
     def access_camera_lores_image():
-        sc = PyCamLightControls.get_camera_interface()
-        PyCamLightControls.reconfigure('preview')
-        data = io.BytesIO()
-        sc.capture_file(data, format='jpeg')
-        return data.getvalue()
+        return PyCamLightControls._access_camera(CameraModes.CAMERA_MODE_PREVIEW)
 
     @staticmethod
     def access_camera_still_image():
-        sc = PyCamLightControls.get_camera_interface()
-        PyCamLightControls.reconfigure('still')
-        data = io.BytesIO()
-        sc.capture_file(data, format='jpeg')
-        return data.getvalue()
+        return PyCamLightControls._access_camera(CameraModes.CAMERA_MODE_STILL)
+
+
+def set_defaults(context):
+    context[PYLIGHTCONTEXT.CAMERA_INTERFACE] = None
+    context[PYLIGHTCONTEXT.CAMERA_STARTED] = False
+    context[PYLIGHTCONTEXT.CAMERA_INITIALIZED] = False
+    context[PYLIGHTCONTEXT.PIGPIO_INTERFACE] = None
+    context[PYLIGHTCONTEXT.PIGPIO_INITIALIZED] = False
+    context[PYLIGHTCONTEXT.CURRENT_LIGHT_STATUS] = 'off'
+    context[PYLIGHTCONTEXT.CURRENT_LIGHT_VALUE] = light(0, 0, 0)
+
+
+def initialize_pycamlights():
+    _ap = app_context()
+    if not _ap:
+            #Problem
+        return 0
+
+    set_defaults(_ap)
+    PyCamLightControls(_ap)
+
+
+
+
+
+
 

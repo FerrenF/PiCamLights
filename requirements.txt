@@ -1,5 +1,4 @@
 pigpio
 picamera2
-numpy
 flask
-flask-socketio
+gunicorn~=21.2.0

@@ -3,8 +3,8 @@ import time
 from flask import Flask, request, jsonify, render_template, make_response, Response
 
 from PyCamLightControls import PyCamLightControls
+from gunicorn_start import dbg_msg
 
-pycamlights = PyCamLightControls()
 app = Flask(__name__)
 
 
@@ -15,7 +15,7 @@ def set_lighting():
     green = int(request.args.get('green', 0))
     blue = int(request.args.get('blue', 0))
 
-    PyCamLightControls.set_lighting(red=red, green=green, blue=blue)
+    PyCamLightControls.set_lighting_values(red=red, green=green, blue=blue)
 
     return jsonify({"message": "Lighting values set successfully!"}), 200
 
@@ -25,9 +25,10 @@ def clear_lighting():
     PyCamLightControls.clear_lighting()
     return jsonify({"message": "Lighting values cleared successfully!"}), 200
 
+
 @app.route('/lights/on', methods=['GET'])
 def set_lighting_full():
-    PyCamLightControls.set_lighting(red=255, green=255, blue=255)
+    PyCamLightControls.set_lighting_values(red=255, green=255, blue=255)
     return jsonify({"message": "Lighting values set to full!"}), 200
 
 
@@ -37,7 +38,7 @@ def frame_generate():
             PyCamLightControls.streaming_output.condition.wait()
             frame = PyCamLightControls.streaming_output.frame
 
-        fps = PCL_CONFIG_SENSOR_MODES[0].get("fps") or 30
+        fps = 30
         if frame is None:
             continue
 
@@ -52,12 +53,14 @@ def access_camera_stream():
     PyCamLightControls.start_camera_stream()
     return Response(frame_generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
+
 @app.route('/stream', methods=['GET'])
 def stream_page():
 
     if request.args.get('page','0') == 'false':
         return access_camera_stream()
     return render_template('stream.html')
+
 
 @app.route('/camera', methods=['GET'])
 def access_still_image():
@@ -87,8 +90,9 @@ def access_still_image():
         return render_template("still.html", imageData=encoded_image_url)
 
     except Exception as e:
-        PyCamLightControls.dbg_msg(f"Error processing request: {e}")
+        dbg_msg(f"Error processing request: {e}")
         return "Internal Server Error", 500
+
 
 @app.route('/')
 def index_page():
